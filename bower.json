@@ -1,0 +1,12 @@
+{
+  "name": "bang",
+  "version": "0.0.1",
+  "main": "lib/main.js",
+  "dependencies": {
+    "jquery": "~2.1.3",
+    "d3": "~3.5.3",
+    "bootstrap": "~3.3.1",
+    "underscore": "~1.7.0"
+  },
+  "devDependencies": {}
+}
