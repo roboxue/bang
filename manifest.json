@@ -1,0 +1,13 @@
+{
+  "manifest_version": 2,
+
+  "name": "Bang",
+  "description": "Frontend RESTful endpoint workspace",
+  "version": "0.0.1",
+
+  "content_scripts": [ {
+    "js": [ "lib/jquery/jquery.js", "lib/d3/d3.js", "lib/bootstrap/bootstrap.js", "lib/underscore/underscore.js", "lib/bang.js" ],
+    "css": [ "lib/bootstrap/bootstrap.css" ],
+    "matches": [ "<all_urls>" ]
+  } ]
+}
