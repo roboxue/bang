@@ -2,7 +2,7 @@
   "manifest_version": 2,
 
   "name": "Bang",
-  "version": "0.0.1",
+  "version": "0.0.2",
 
   "description": "Frontend JSON workspace",
   "author": "Robert Xue",

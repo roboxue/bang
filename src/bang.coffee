@@ -57,6 +57,10 @@ didRunQuery = ->
     queryResult = result
     updateNavigator ["queryResult"]
 
+didReset = ->
+  $("#query").val "bang"
+  updateNavigator ["bang"]
+
 runQuery = (query, options)->
   try
     unless options and options.silent
@@ -149,6 +153,7 @@ renderQueryForm = (root)->
   <div class="form-group">
     <div class="col-sm-offset-2 col-sm-10">
       <button type="submit" class="btn btn-default" id="runQuery">Run it!</button>
+      <button type="reset" class="btn btn-default" id="reset">Reset</button>
     </div>
   </div>
 </div>
@@ -159,6 +164,7 @@ renderQueryForm = (root)->
     $("#query").val("_.keys(bang)")
 
   $("#runQuery").click didRunQuery
+  $("#reset").click didReset
 
 load = ->
   try
