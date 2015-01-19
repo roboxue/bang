@@ -1,15 +1,15 @@
 # Created by Robert Xue on 1/18/15.
-bang = {}
+bang = null
+bangUri = null
+queryResult = null
 render = ->
   console.log "Bang will make your life with JSON easier!"
   root = d3.select("body").text("").append("div").attr("class", "container")
   renderHeader root.append("div").attr("class", "navbar navbar-default")
   queryRow = root.append("div").attr("class", "row")
-  navigatorRow = root.append("div").attr("class", "row")
   responseRow = root.append("div").attr("class", "row")
   renderQuery queryRow.append("div").attr("class", "col-lg-6 col-md-6 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-default").attr("id", "queryPanel")
-  renderResult queryRow.append("div").attr("class", "col-lg-6 col-md-6 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-default").attr("id", "resultPanel")
-  renderNavigator navigatorRow.append("div").attr("class", "col-lg-12 col-md-12 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-success").attr("id", "navigatorPanel")
+  renderNavigator queryRow.append("div").attr("class", "col-lg-6 col-md-6 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-success").attr("id", "navigatorPanel")
   renderResponse responseRow.append("div").attr("class", "col-lg-12 col-md-12 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-success")
   $(".panel-heading").css({cursor: "pointer", "word-break": "break-all"}).click (ev)->
     $(ev.currentTarget).siblings(".panel-body").toggle()
@@ -26,44 +26,47 @@ renderHeader = (root)->
   """
 
 renderResponse = (root)->
-  {data, uri} = bang
-  header = root.append("div").attr("class", "panel-heading").html("Response from <code>#{uri}</code> stored into bang.data")
-  root.append("div").attr("class", "panel-body").append("pre").text(JSON.stringify(data, null, 4))
+  header = root.append("div").attr("class", "panel-heading").html("Response from <code>#{bangUri}</code> stored into bang")
+  root.append("div").attr("class", "panel-body").append("pre").text(JSON.stringify(bang, null, 4))
 
 renderQuery = (root)->
   root.append("div").attr("class", "panel-heading").text("Query")
   renderQueryForm root.append("div").attr("class", "panel-body")
-
-renderResult = (root)->
-  root.append("div").attr("class", "panel-heading").text("Result")
-  root.append("div").attr("class", "panel-body").append("pre").attr("id", "queryResult")
 
 renderNavigator = (root)->
   root.append("div").attr("class", "panel-heading").text("Response Navigator")
   panelBody = root.append("div").attr("class", "panel-body")
   panelBody.append("ul").attr("class", "breadcrumb")
   panelBody.append("div").attr("class", "form-inline")
-  panelBody.append("pre")
+  panelBody.append("pre").style("display", "none")
   root.append("ul").attr("class", "list-group")
   root.append("table").attr("class", "table")
-  updateNavigator ["bang.data"]
+  updateNavigator ["bang"]
 
 didRunQuery = ->
   query = $("#query").val()
-  runQuery query
+  navigator = d3.select("#navigatorPanel .breadcrumb").text ""
+  arrayNavigatior = d3.select("#navigatorPanel .form-inline").text ""
+  autocomplete = d3.select("#navigatorPanel .list-group").text ""
+  autocompleteTable = d3.select("#navigatorPanel table").text ""
+  codeBlock = d3.select("#navigatorPanel pre").style("display", "none").text ""
+  { error, result } = runQuery query
+  if error
+    codeBlock.text error
+  else
+    queryResult = result
+    updateNavigator ["queryResult"]
 
-runQuery = (query)->
+runQuery = (query, options)->
   try
-    $("#query").val query
+    unless options and options.silent
+      $("#query").val query
     result = eval query
     if result is undefined
-      $("#queryResult").text "(undefined)"
       return {error: "(undefined)"}
     else
-      $("#queryResult").text JSON.stringify(result, null, 4)
       return {result}
   catch ex
-    $("#queryResult").text ex
     return {error: ex}
 
 updateNavigator = (path)->
@@ -71,48 +74,53 @@ updateNavigator = (path)->
   arrayNavigatior = d3.select("#navigatorPanel .form-inline").text ""
   autocomplete = d3.select("#navigatorPanel .list-group").text ""
   autocompleteTable = d3.select("#navigatorPanel table").text ""
-  codeBlock = d3.select("#navigatorPanel pre").text ""
+  codeBlock = d3.select("#navigatorPanel pre").style("display", "none").text ""
   query = getQueryFromPath path
   console.log "Update Navigator", path, query
-  {error, result} = runQuery query
+  {error, result} = runQuery query, {silent: true}
   return navigator.text JSON.stringify(error, null, 4) if error
   navigator.selectAll("li").data(path).enter().append("li").each (pathFragment, i)->
-    if i is path.length - 1
-      d3.select(this).attr("class", "active").text(pathFragment)
-    else
-      d3.select(this).append("a").attr("href", "#").text(pathFragment).on "click", (currentPathFragment)->
-        console.log path, i
+    d3.select(this).append("a").attr("href", "#").text(pathFragment).on "click", (currentPathFragment)->
+      d3.event.preventDefault()
+      if node = pathFragment.match(/^(.*)\[(\d+)]$/)
+        updateNavigator path.slice(0, i).concat node[1] + "[]"
+      else
         updateNavigator path.slice(0, i + 1)
   if result instanceof Array
     arrayNavigatior.append("div").attr("class", "form-group").html """
-    <label for='arrayIndex'>Name</label>
+    <label for='arrayIndex'>Index (0 - #{result.length-1})</label>
     <input type='number' class='form-control' id='arrayIndex' value='0' min='0' max='#{result.length-1}'>
     """
     arrayNavigatior.append("button").attr("type", "submit").attr("class", "btn btn-default").text("Go")
     .on("click", ->
       d3.event.preventDefault()
       arrayIndex = $("#arrayIndex").val()
-      node = path[path.length - 1].match /(\w*)\[(\d*)]$/
-      updateNavigator path.slice(0, path.length - 1).concat node[1] + "[#{arrayIndex}]"
+      node = path[path.length - 1].match(/^(.*)\[(\d*)]$/)
+      pathFragment = if node then node[1] else path[path.length - 1]
+      updateNavigator path.slice(0, path.length - 1).concat pathFragment + "[#{arrayIndex}]"
     )
   else if result instanceof Object
     autocomplete.selectAll("li").data(Object.keys(result)).enter()
-    .append("li").attr("class", "list-group-item").append("a").attr("href", "#").text((key)-> getPathFragmentForKey(result, key))
-    .on("click", (key, i)->
-      d3.event.preventDefault()
-      pathFragment = getPathFragmentForKey result, key
-      updateNavigator path.concat(pathFragment)
-    )
+    .append("li").attr("class", "list-group-item").each (key)->
+      if not (result[key] instanceof Array or result[key] instanceof Object)
+        d3.select(this).append("span").text key
+        d3.select(this).append("span").attr("class", "pull-right").text result[key]
+      else
+        pathFragment = getPathFragmentForKey(result, key)
+        d3.select(this).append("a").attr("href", "#").text(pathFragment)
+        .on("click", ->
+          d3.event.preventDefault()
+          updateNavigator path.concat(pathFragment)
+        )
   else
-    codeBlock.text JSON.stringify(result, null, 4)
+    codeBlock.style("display", null).text JSON.stringify(result, null, 4)
 
 getQueryFromPath = (path)->
   query = path.reduce ((pv, cv, index, array)->
     if index isnt 0
       pv += "."
-    if node = cv.match /(\w*)#$/
-      pv += node[1]
-    else if node = cv.match /(\w*)\[(\d*)]$/
+    if node = cv.match /^(.*)\[(\d*)]$/
+      console.log node
       pv += node[1]
       pv += "[#{node[2]}]" if node[2]
       pv
@@ -145,10 +153,10 @@ renderQueryForm = (root)->
   </div>
 </div>
 """)
-  if bang.data instanceof Array
-    $("#query").val("_.size(bang.dat)")
+  if bang instanceof Array
+    $("#query").val("_.size(bang)")
   else
-    $("#query").val("_.keys(bang.data)")
+    $("#query").val("_.keys(bang)")
 
   $("#runQuery").click didRunQuery
 
@@ -157,8 +165,8 @@ load = ->
     return unless document.body && (document.body.childNodes[0] && document.body.childNodes[0].tagName == "PRE" || document.body.children.length == 0)
     data = if document.body.children.length then $("pre").text() else document.body
     return unless data
-    bang.data = JSON.parse data
-    bang.uri = document.location.href
+    bang = JSON.parse data
+    bangUri = document.location.href
   catch ex
     console.warn "Document not valid json, bang will not work: #{ex}"
   console.warn "Bang can't work on HTML and XML pages"
