@@ -10,7 +10,7 @@
 
   "content_scripts": [ {
     "js": [ "lib/jquery/jquery.js", "lib/d3/d3.js", "lib/bootstrap/bootstrap.js", "lib/underscore/underscore.js", "lib/bang.js" ],
-    "css": [ "lib/bootstrap/bootstrap.css" ],
     "matches": [ "<all_urls>" ]
-  } ]
+  } ],
+  "web_accessible_resources": ["lib/bootstrap/bootstrap.css"]
 }

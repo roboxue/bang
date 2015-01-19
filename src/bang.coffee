@@ -10,6 +10,7 @@ render = ->
   renderResult queryRow.append("div").attr("class", "col-lg-6 col-md-6 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-default").attr("id", "resultPanel")
   $(".panel-heading").css({cursor: "pointer", "word-break": "break-all"}).click (ev)->
     $(ev.currentTarget).siblings(".panel-body").toggle()
+  root.append("link").attr({rel: "stylesheet", href: chrome.extension.getURL('lib/bootstrap/bootstrap.css'), type: "text/css"})
 
 renderHeader = (root)->
   root.html """
