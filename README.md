@@ -1,11 +1,17 @@
 # Bang | 棒！
 Frontend JSON workspace, a Chrome extension
 
-![screen shot 2015-01-19 at 00 49 17](https://cloud.githubusercontent.com/assets/4080835/5796865/5d79fb82-9f75-11e4-8443-c6ccf42f5386.png)
+*v0.0.2 Release*
+![screen shot 2015-01-19 at 17 55 15](https://cloud.githubusercontent.com/assets/4080835/5809943/58f7f7e6-a004-11e4-971a-17affd4d09bc.png)
 
 (Not released yet, in dev mode)
 
-# To use it now:
+# How to build
+1. Make sure you have node.js and npm installed
+2. `npm install`
+3. `grunt`
+
+# How to load into Chrome
 
 1. Disable all existing JSON viewer plugins
 
