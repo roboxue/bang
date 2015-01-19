@@ -2,8 +2,11 @@
   "manifest_version": 2,
 
   "name": "Bang",
-  "description": "Frontend RESTful endpoint workspace",
   "version": "0.0.1",
+
+  "description": "Frontend JSON workspace",
+  "author": "Robert Xue",
+  "homepage_url": "https://github.com/roboxue/bang",
 
   "content_scripts": [ {
     "js": [ "lib/jquery/jquery.js", "lib/d3/d3.js", "lib/bootstrap/bootstrap.js", "lib/underscore/underscore.js", "lib/bang.js" ],

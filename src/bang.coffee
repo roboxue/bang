@@ -1,7 +1,7 @@
 # Created by Robert Xue on 1/18/15.
-console.log "Bang is running on this page"
 bang = {}
 render = ->
+  console.log "Bang will make your life with JSON easier!"
   root = d3.select("body").text("").append("div").attr("class", "container")
   renderHeader root.append("div").attr("class", "navbar navbar-default")
   queryRow = root.append("div").attr("class", "row")
@@ -78,8 +78,9 @@ load = ->
       if data
         bang.data = JSON.parse data
         bang.uri = document.location.href
+        return render()
   catch ex
-    console.warning "Document not valid json, bang will not work: #{ex}"
-  render()
+    console.warn "Document not valid json, bang will not work: #{ex}"
+  console.warn "Bang can't work on HTML and XML pages"
 
 load()
