@@ -1,9 +1,11 @@
-# Bang
+# Bang | 棒！
 Frontend JSON workspace, a Chrome extension
 
-Not released yet, in dev mode
+![screen shot 2015-01-19 at 00 49 17](https://cloud.githubusercontent.com/assets/4080835/5796865/5d79fb82-9f75-11e4-8443-c6ccf42f5386.png)
 
-How to use it:
+(Not released yet, in dev mode)
+
+# To use it now:
 
 1. Disable all existing JSON viewer plugins
 
