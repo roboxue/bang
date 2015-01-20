@@ -8,19 +8,44 @@ class BangJsonPathFragment extends Backbone.Model
   getQueryFragment: ->
     # return valid javascript json navigation code fragment
     # if the pathFragment is in the form of 'array[]', return 'array'
+    # if the pathFragment is in the form of ':key', return map(function(row){return row.key})
     # else, return as is. eg. 'array[1]' -> 'array[1]'
     arrayRx = /^(.+)\[]$/
+    keyRx = /^:(.+)$/
+    type = @getFragmentType()
+    switch type
+      when "ArrayRoot"
+        [fullExpression, arrayName] = @get("fragment").match arrayRx
+        arrayName
+      when "ArrayKey"
+        [fullExpression, keyName] = @get("fragment").match keyRx
+        "map(function(row){return row.#{keyName};})"
+      else
+        @get("fragment")
+
+  getFragmentType: ->
+    arrayRx = /^(.+)\[]$/
+    arrayElementRx = /^(.+)\[\d+]$/
+    keyRx = /^:(.+)$/
     if arrayRx.test @get("fragment")
-      [fullName, arrayName] = @get("fragment").match arrayRx
-      arrayName
+      "ArrayRoot"
+    else if arrayElementRx.test @get("fragment")
+      "ArrayElement"
+    else if keyRx.test @get("fragment")
+      "ArrayKey"
     else
-      @get("fragment")
+      "Value"
+
+  getArrayKeyName: ->
+    keyRx = /^:(.+)$/
+    [fullExpression, keyName] = @get("fragment").match keyRx
+    keyName
 
   getDisplayName: ->
     @get("fragment")
 
   getBaseFragment: ->
-    # Determine the javascript json navigation code fragment for array root
+    # Determine the javascript json navigation code fragment
     # if the pathFragment is in the form of 'array[0]', return 'array[]'
     # else, return null
     arrayRx = /^(.+)\[(\d+)]$/
@@ -118,7 +143,14 @@ class BangJsonView extends Backbone.View
           path.navigateTo i
 
     if result instanceof Array
-      @updateArrayContent result
+      type = path.last().getFragmentType()
+      switch type
+        when "ArrayRoot"
+          @updateArrayContent result
+        when "ArrayElement"
+          @updateArrayContent result
+        when "ArrayKey"
+          @updateArrayPluckView result, path.last().getArrayKeyName()
     else if result instanceof Object
       @updateKeyValuePair result
     else
@@ -128,11 +160,11 @@ class BangJsonView extends Backbone.View
     @keyValuePairUl.selectAll("li").data(Object.keys(result)).enter()
     .append("li").attr("class", "list-group-item").each (key)->
       if not (result[key] instanceof Array or result[key] instanceof Object)
-        d3.select(this).append("span").text key
+        d3.select(this).append("strong").text key
         d3.select(this).append("span").attr("class", "pull-right").text result[key]
       else
         pathFragment = getPathFragmentForKey(result, key)
-        d3.select(this).append("a").attr("href", "#").text(pathFragment.get("fragment"))
+        d3.select(this).append("strong").append("a").attr("href", "#").text(pathFragment.get("fragment"))
         .on("click", ->
           d3.event.preventDefault()
           bangJsonView.model.add pathFragment
@@ -158,6 +190,39 @@ class BangJsonView extends Backbone.View
         index = $("#arrayIndex").val()
         bangJsonView.model.navigateToArrayElement(index)
       )
+      keyStats = {}
+      result.forEach (row)->
+        _.keys(row).forEach (key)->
+          keyStats[key] = (keyStats[key] or 0) + 1
+      if _.size(keyStats) > 0
+        @updateArraySchemaTable _.pairs(keyStats), result
+
+  updateArrayPluckView: (result, key)->
+    console.log "Pluck View"
+    @keyValuePairUl.selectAll("li").data(result).enter()
+    .append("li").attr("class", "list-group-item").each (value, i)->
+      d3.select(this).append("strong").append("a").attr("href", "#").text("Element #{i}").on "click", ->
+        bangJsonView.model.pop()
+        bangJsonView.model.navigateToArrayElement i
+        bangJsonView.model.push({fragment: key}) if value instanceof Object
+        bangJsonView.model.trigger "path:update"
+      if value instanceof Object
+        d3.select(this).append("pre").text JSON.stringify(value, null, 4)
+      else
+        d3.select(this).append("span").attr("class", "pull-right").text value
+
+  updateArraySchemaTable: (keyStats, array)->
+    @arrayContentTable.append("thead").html """
+      <thead><tr>
+        <th>Key</th><th>Times occurred in elements</th>
+      </tr></thead>
+    """
+    rows = @arrayContentTable.append("tfoot").selectAll("tr").data(keyStats).enter().append("tr")
+    rows.append("td").append("a").attr("href", "#").text(([key])-> key).on "click", ([key])->
+      d3.event.preventDefault()
+      bangJsonView.model.push new BangJsonPathFragment {fragment: ":#{key}"}
+      bangJsonView.model.trigger "path:update"
+    rows.append("td").text(([key, times])-> "#{times} (#{(100 * times / array.length).toFixed(0)}%)")
 
   clear: ->
     @breadcrumbUl.text ""
@@ -195,7 +260,7 @@ renderHeader = (root)->
   """
 
 renderResponse = (root)->
-  header = root.append("div").attr("class", "panel-heading").html("Response from <code>#{bangUri}</code> stored into bang")
+  header = root.append("div").attr("class", "panel-heading").html("Response from <code>#{bangUri}</code> stored into <strong>bang</strong>")
   root.append("div").attr("class", "panel-body").append("pre").text(JSON.stringify(bang, null, 4))
 
 renderQuery = (root)->

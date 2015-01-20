@@ -19,14 +19,43 @@
     }
 
     BangJsonPathFragment.prototype.getQueryFragment = function() {
-      var arrayName, arrayRx, fullName, _ref;
+      var arrayName, arrayRx, fullExpression, keyName, keyRx, type, _ref, _ref1;
       arrayRx = /^(.+)\[]$/;
-      if (arrayRx.test(this.get("fragment"))) {
-        _ref = this.get("fragment").match(arrayRx), fullName = _ref[0], arrayName = _ref[1];
-        return arrayName;
-      } else {
-        return this.get("fragment");
+      keyRx = /^:(.+)$/;
+      type = this.getFragmentType();
+      switch (type) {
+        case "ArrayRoot":
+          _ref = this.get("fragment").match(arrayRx), fullExpression = _ref[0], arrayName = _ref[1];
+          return arrayName;
+        case "ArrayKey":
+          _ref1 = this.get("fragment").match(keyRx), fullExpression = _ref1[0], keyName = _ref1[1];
+          return "map(function(row){return row." + keyName + ";})";
+        default:
+          return this.get("fragment");
       }
+    };
+
+    BangJsonPathFragment.prototype.getFragmentType = function() {
+      var arrayElementRx, arrayRx, keyRx;
+      arrayRx = /^(.+)\[]$/;
+      arrayElementRx = /^(.+)\[\d+]$/;
+      keyRx = /^:(.+)$/;
+      if (arrayRx.test(this.get("fragment"))) {
+        return "ArrayRoot";
+      } else if (arrayElementRx.test(this.get("fragment"))) {
+        return "ArrayElement";
+      } else if (keyRx.test(this.get("fragment"))) {
+        return "ArrayKey";
+      } else {
+        return "Value";
+      }
+    };
+
+    BangJsonPathFragment.prototype.getArrayKeyName = function() {
+      var fullExpression, keyName, keyRx, _ref;
+      keyRx = /^:(.+)$/;
+      _ref = this.get("fragment").match(keyRx), fullExpression = _ref[0], keyName = _ref[1];
+      return keyName;
     };
 
     BangJsonPathFragment.prototype.getDisplayName = function() {
@@ -133,7 +162,7 @@
     };
 
     BangJsonView.prototype.updateNavigator = function(option) {
-      var error, path, query, result, _ref;
+      var error, path, query, result, type, _ref;
       this.clear();
       path = this.model;
       query = path.getQuery();
@@ -164,7 +193,15 @@
         }
       });
       if (result instanceof Array) {
-        return this.updateArrayContent(result);
+        type = path.last().getFragmentType();
+        switch (type) {
+          case "ArrayRoot":
+            return this.updateArrayContent(result);
+          case "ArrayElement":
+            return this.updateArrayContent(result);
+          case "ArrayKey":
+            return this.updateArrayPluckView(result, path.last().getArrayKeyName());
+        }
       } else if (result instanceof Object) {
         return this.updateKeyValuePair(result);
       } else {
@@ -176,11 +213,11 @@
       return this.keyValuePairUl.selectAll("li").data(Object.keys(result)).enter().append("li").attr("class", "list-group-item").each(function(key) {
         var pathFragment;
         if (!(result[key] instanceof Array || result[key] instanceof Object)) {
-          d3.select(this).append("span").text(key);
+          d3.select(this).append("strong").text(key);
           return d3.select(this).append("span").attr("class", "pull-right").text(result[key]);
         } else {
           pathFragment = getPathFragmentForKey(result, key);
-          d3.select(this).append("a").attr("href", "#").text(pathFragment.get("fragment")).on("click", function() {
+          d3.select(this).append("strong").append("a").attr("href", "#").text(pathFragment.get("fragment")).on("click", function() {
             d3.event.preventDefault();
             bangJsonView.model.add(pathFragment);
             console.log("Add", pathFragment, bangJsonView.model.models);
@@ -196,17 +233,72 @@
     };
 
     BangJsonView.prototype.updateArrayContent = function(result) {
+      var keyStats;
       if (result.length === 0) {
         return this.indexSelectorDiv.append("div").attr("class", "form-group").html("<span>Empty array</span>");
       } else {
         this.indexSelectorDiv.append("div").attr("class", "form-group").html("<span>Array with " + result.length + " elements</span>\n<input type='number' class='form-control' id='arrayIndex' value='0' min='0' max='" + (result.length - 1) + "'>");
-        return this.indexSelectorDiv.append("button").attr("type", "submit").attr("class", "btn btn-default").text("Go").on("click", function() {
+        this.indexSelectorDiv.append("button").attr("type", "submit").attr("class", "btn btn-default").text("Go").on("click", function() {
           var index;
           d3.event.preventDefault();
           index = $("#arrayIndex").val();
           return bangJsonView.model.navigateToArrayElement(index);
         });
+        keyStats = {};
+        result.forEach(function(row) {
+          return _.keys(row).forEach(function(key) {
+            return keyStats[key] = (keyStats[key] || 0) + 1;
+          });
+        });
+        if (_.size(keyStats) > 0) {
+          return this.updateArraySchemaTable(_.pairs(keyStats), result);
+        }
       }
+    };
+
+    BangJsonView.prototype.updateArrayPluckView = function(result, key) {
+      console.log("Pluck View");
+      return this.keyValuePairUl.selectAll("li").data(result).enter().append("li").attr("class", "list-group-item").each(function(value, i) {
+        d3.select(this).append("strong").append("a").attr("href", "#").text("Element " + i).on("click", function() {
+          bangJsonView.model.pop();
+          bangJsonView.model.navigateToArrayElement(i);
+          if (value instanceof Object) {
+            bangJsonView.model.push({
+              fragment: key
+            });
+          }
+          return bangJsonView.model.trigger("path:update");
+        });
+        if (value instanceof Object) {
+          return d3.select(this).append("pre").text(JSON.stringify(value, null, 4));
+        } else {
+          return d3.select(this).append("span").attr("class", "pull-right").text(value);
+        }
+      });
+    };
+
+    BangJsonView.prototype.updateArraySchemaTable = function(keyStats, array) {
+      var rows;
+      this.arrayContentTable.append("thead").html("<thead><tr>\n  <th>Key</th><th>Times occurred in elements</th>\n</tr></thead>");
+      rows = this.arrayContentTable.append("tfoot").selectAll("tr").data(keyStats).enter().append("tr");
+      rows.append("td").append("a").attr("href", "#").text(function(_arg) {
+        var key;
+        key = _arg[0];
+        return key;
+      }).on("click", function(_arg) {
+        var key;
+        key = _arg[0];
+        d3.event.preventDefault();
+        bangJsonView.model.push(new BangJsonPathFragment({
+          fragment: ":" + key
+        }));
+        return bangJsonView.model.trigger("path:update");
+      });
+      return rows.append("td").text(function(_arg) {
+        var key, times;
+        key = _arg[0], times = _arg[1];
+        return "" + times + " (" + ((100 * times / array.length).toFixed(0)) + "%)";
+      });
     };
 
     BangJsonView.prototype.clear = function() {
@@ -259,7 +351,7 @@
 
   renderResponse = function(root) {
     var header;
-    header = root.append("div").attr("class", "panel-heading").html("Response from <code>" + bangUri + "</code> stored into bang");
+    header = root.append("div").attr("class", "panel-heading").html("Response from <code>" + bangUri + "</code> stored into <strong>bang</strong>");
     return root.append("div").attr("class", "panel-body").append("pre").text(JSON.stringify(bang, null, 4));
   };
 
