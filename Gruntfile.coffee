@@ -9,7 +9,7 @@ module.exports = (grunt) ->
         ext: '.js'
     watch:
       app:
-        files: '**/*.coffee'
+        files: ['**/*.coffee', 'manifest.json']
         tasks: ['coffee', 'copy']
     bower:
       install:

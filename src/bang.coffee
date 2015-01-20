@@ -2,6 +2,170 @@
 bang = null
 bangUri = null
 queryResult = null
+bangJsonView = null
+
+class BangJsonPathFragment extends Backbone.Model
+  getQueryFragment: ->
+    # return valid javascript json navigation code fragment
+    # if the pathFragment is in the form of 'array[]', return 'array'
+    # else, return as is. eg. 'array[1]' -> 'array[1]'
+    arrayRx = /^(.+)\[]$/
+    if arrayRx.test @get("fragment")
+      [fullName, arrayName] = @get("fragment").match arrayRx
+      arrayName
+    else
+      @get("fragment")
+
+  getDisplayName: ->
+    @get("fragment")
+
+  getBaseFragment: ->
+    # Determine the javascript json navigation code fragment for array root
+    # if the pathFragment is in the form of 'array[0]', return 'array[]'
+    # else, return null
+    arrayRx = /^(.+)\[(\d+)]$/
+    if arrayRx.test @get("fragment")
+      [fullName, arrayName] = @get("fragment").match arrayRx
+      arrayName + "[]"
+
+  getArrayFragment: (index)->
+    # Determine the javascript json navigation code fragment for array element
+    # if the pathFragment is in the form of 'array[]', return 'array[i]'
+    # else, return null
+    arrayRx = /^(.+)\[]$/
+    if arrayRx.test @get("fragment")
+      [fullName, arrayName] = @get("fragment").match arrayRx
+      arrayName + "[#{index}]"
+
+
+class BangJsonPath extends Backbone.Collection
+  model: BangJsonPathFragment
+
+  initialize: (models, option)->
+    if option and option.baseExpression
+      @baseExpression = option.baseExpression
+    else
+      @baseExpression = models[0].get("fragment")
+
+  getQuery: ->
+    @reduce ((pv, cv, index, array)->
+      if index > 0
+        pv += "."
+      pv += cv.getQueryFragment()
+    ), ""
+
+  getDisplayedQuery: ->
+    @reduce ((pv, cv, index, array)->
+      if index > 0
+        pv += "." + cv.getQueryFragment()
+      else
+        pv
+    ), @baseExpression
+
+  navigateTo: (index)->
+    while @models.length > Math.max(index + 1, 0)
+      @pop()
+    @trigger "path:update"
+
+  navigateToArrayElement: (index)->
+    if arrayFragment = @last().getArrayFragment(index)
+      @last().set "fragment", arrayFragment
+      @trigger "path:update"
+
+class BangJsonView extends Backbone.View
+  model: BangJsonPath
+
+  render: ->
+    root  = d3.select(@el)
+    root.append("div").attr("class", "panel-heading").text("Response Navigator")
+    panelBody = root.append("div").attr("class", "panel-body")
+    # For rendering json path
+    @breadcrumbUl = panelBody.append("ul").attr("class", "breadcrumb")
+    # For rendering array index selector
+    @indexSelectorDiv = panelBody.append("div").attr("class", "form-inline")
+    # For rendering actual value
+    @codeBlockPre = panelBody.append("pre").style("display", "none")
+    # For rendering key value pairs
+    @keyValuePairUl = root.append("ul").attr("class", "list-group")
+    # For rendering array contents
+    @arrayContentTable = root.append("table").attr("class", "table")
+
+    @listenTo @model, "path:update", @updateNavigator
+
+  updateNavigator: (option)->
+    @clear()
+    path = @model
+    query = path.getQuery()
+    console.log "Update Navigator", @model.models, query
+    {error, result} = runQuery query
+    $("#query").val path.getDisplayedQuery() unless option and option.silent
+    return @breadcrumbUl.text JSON.stringify(error, null, 4) if error
+    @breadcrumbUl.selectAll("li").data(@model.models).enter().append("li").each (pathFragment, i)->
+      if i is path.length - 1
+        # return a link to the array base for an array item at the last position
+        if pathFragment.getBaseFragment()
+          d3.select(this).append("a").attr("href", "#").text(pathFragment.getDisplayName()).on "click", ->
+            d3.event.preventDefault()
+            path.last().set "fragment", pathFragment.getBaseFragment()
+            path.trigger "path:update"
+        else
+          # return a static span for the last element in the path which is not an array item
+          d3.select(this).append("span").text(pathFragment.getDisplayName())
+      else
+        # return a link to the path for everything in the path
+        d3.select(this).append("a").attr("href", "#").text(pathFragment.getDisplayName()).on "click", ->
+          d3.event.preventDefault()
+          path.navigateTo i
+
+    if result instanceof Array
+      @updateArrayContent result
+    else if result instanceof Object
+      @updateKeyValuePair result
+    else
+      @codeBlockPre.style("display", null).text JSON.stringify(result, null, 4)
+
+  updateKeyValuePair: (result)->
+    @keyValuePairUl.selectAll("li").data(Object.keys(result)).enter()
+    .append("li").attr("class", "list-group-item").each (key)->
+      if not (result[key] instanceof Array or result[key] instanceof Object)
+        d3.select(this).append("span").text key
+        d3.select(this).append("span").attr("class", "pull-right").text result[key]
+      else
+        pathFragment = getPathFragmentForKey(result, key)
+        d3.select(this).append("a").attr("href", "#").text(pathFragment.get("fragment"))
+        .on("click", ->
+          d3.event.preventDefault()
+          bangJsonView.model.add pathFragment
+          console.log "Add", pathFragment, bangJsonView.model.models
+          bangJsonView.model.trigger "path:update"
+        )
+        if result[key] instanceof Array
+          d3.select(this).append("span").attr("class", "pull-right").text "Array with #{result[key].length} elements"
+        else
+          d3.select(this).append("span").attr("class", "pull-right").text "Object with #{_.size(result[key])} key value pairs"
+
+  updateArrayContent: (result)->
+    if result.length is 0
+      @indexSelectorDiv.append("div").attr("class", "form-group").html "<span>Empty array</span>"
+    else
+      @indexSelectorDiv.append("div").attr("class", "form-group").html """
+        <span>Array with #{result.length} elements</span>
+        <input type='number' class='form-control' id='arrayIndex' value='0' min='0' max='#{result.length-1}'>
+      """
+      @indexSelectorDiv.append("button").attr("type", "submit").attr("class", "btn btn-default").text("Go")
+      .on("click", ->
+        d3.event.preventDefault()
+        index = $("#arrayIndex").val()
+        bangJsonView.model.navigateToArrayElement(index)
+      )
+
+  clear: ->
+    @breadcrumbUl.text ""
+    @indexSelectorDiv.text ""
+    @codeBlockPre.style("display", "none").text ""
+    @keyValuePairUl.text ""
+    @arrayContentTable.text ""
+
 render = ->
   console.log "Bang will make your life with JSON easier!"
   root = d3.select("body").text("").append("div").attr("class", "container")
@@ -9,11 +173,16 @@ render = ->
   queryRow = root.append("div").attr("class", "row")
   responseRow = root.append("div").attr("class", "row")
   renderQuery queryRow.append("div").attr("class", "col-lg-6 col-md-6 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-default").attr("id", "queryPanel")
-  renderNavigator queryRow.append("div").attr("class", "col-lg-6 col-md-6 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-success").attr("id", "navigatorPanel")
+  bangJsonView = new BangJsonView {
+    model: new BangJsonPath [new BangJsonPathFragment({fragment: "bang"})]
+    el: queryRow.append("div").attr("class", "col-lg-6 col-md-6 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-success").attr("id", "navigatorPanel").node()
+  }
+  bangJsonView.render()
   renderResponse responseRow.append("div").attr("class", "col-lg-12 col-md-12 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-success")
   $(".panel-heading").css({cursor: "pointer", "word-break": "break-all"}).click (ev)->
     $(ev.currentTarget).siblings(".panel-body").toggle()
   root.append("link").attr({rel: "stylesheet", href: chrome.extension.getURL('lib/bootstrap/bootstrap.css'), type: "text/css"})
+  bangJsonView.model.trigger "path:update"
 
 renderHeader = (root)->
   root.html """
@@ -33,38 +202,30 @@ renderQuery = (root)->
   root.append("div").attr("class", "panel-heading").text("Query")
   renderQueryForm root.append("div").attr("class", "panel-body")
 
-renderNavigator = (root)->
-  root.append("div").attr("class", "panel-heading").text("Response Navigator")
-  panelBody = root.append("div").attr("class", "panel-body")
-  panelBody.append("ul").attr("class", "breadcrumb")
-  panelBody.append("div").attr("class", "form-inline")
-  panelBody.append("pre").style("display", "none")
-  root.append("ul").attr("class", "list-group")
-  root.append("table").attr("class", "table")
-  updateNavigator ["bang"]
-
 didRunQuery = ->
   query = $("#query").val()
-  navigator = d3.select("#navigatorPanel .breadcrumb").text ""
-  arrayNavigatior = d3.select("#navigatorPanel .form-inline").text ""
-  autocomplete = d3.select("#navigatorPanel .list-group").text ""
-  autocompleteTable = d3.select("#navigatorPanel table").text ""
-  codeBlock = d3.select("#navigatorPanel pre").style("display", "none").text ""
+  bangJsonView.clear()
   { error, result } = runQuery query
+  console.log error, result
   if error
-    codeBlock.text error
+    bangJsonView.codeBlockPre.style("display", null).text error
   else
     queryResult = result
-    updateNavigator ["queryResult"]
+    bangJsonView.model.baseExpression = query
+    if queryResult instanceof Array
+      bangJsonView.model.set {fragment: "queryResult[]"}
+    else
+      bangJsonView.model.set {fragment: "queryResult"}
+    bangJsonView.model.trigger "path:update"
 
 didReset = ->
   $("#query").val "bang"
-  updateNavigator ["bang"]
+  bangJsonView.model.baseExpression = "bang"
+  bangJsonView.model.set {fragment: "bang"}
+  bangJsonView.model.trigger "path:update"
 
-runQuery = (query, options)->
+runQuery = (query)->
   try
-    unless options and options.silent
-      $("#query").val query
     result = eval query
     if result is undefined
       return {error: "(undefined)"}
@@ -73,73 +234,14 @@ runQuery = (query, options)->
   catch ex
     return {error: ex}
 
-updateNavigator = (path)->
-  navigator = d3.select("#navigatorPanel .breadcrumb").text ""
-  arrayNavigatior = d3.select("#navigatorPanel .form-inline").text ""
-  autocomplete = d3.select("#navigatorPanel .list-group").text ""
-  autocompleteTable = d3.select("#navigatorPanel table").text ""
-  codeBlock = d3.select("#navigatorPanel pre").style("display", "none").text ""
-  query = getQueryFromPath path
-  console.log "Update Navigator", path, query
-  {error, result} = runQuery query, {silent: true}
-  return navigator.text JSON.stringify(error, null, 4) if error
-  navigator.selectAll("li").data(path).enter().append("li").each (pathFragment, i)->
-    d3.select(this).append("a").attr("href", "#").text(pathFragment).on "click", (currentPathFragment)->
-      d3.event.preventDefault()
-      if node = pathFragment.match(/^(.*)\[(\d+)]$/)
-        updateNavigator path.slice(0, i).concat node[1] + "[]"
-      else
-        updateNavigator path.slice(0, i + 1)
-  if result instanceof Array
-    arrayNavigatior.append("div").attr("class", "form-group").html """
-    <label for='arrayIndex'>Index (0 - #{result.length-1})</label>
-    <input type='number' class='form-control' id='arrayIndex' value='0' min='0' max='#{result.length-1}'>
-    """
-    arrayNavigatior.append("button").attr("type", "submit").attr("class", "btn btn-default").text("Go")
-    .on("click", ->
-      d3.event.preventDefault()
-      arrayIndex = $("#arrayIndex").val()
-      node = path[path.length - 1].match(/^(.*)\[(\d*)]$/)
-      pathFragment = if node then node[1] else path[path.length - 1]
-      updateNavigator path.slice(0, path.length - 1).concat pathFragment + "[#{arrayIndex}]"
-    )
-  else if result instanceof Object
-    autocomplete.selectAll("li").data(Object.keys(result)).enter()
-    .append("li").attr("class", "list-group-item").each (key)->
-      if not (result[key] instanceof Array or result[key] instanceof Object)
-        d3.select(this).append("span").text key
-        d3.select(this).append("span").attr("class", "pull-right").text result[key]
-      else
-        pathFragment = getPathFragmentForKey(result, key)
-        d3.select(this).append("a").attr("href", "#").text(pathFragment)
-        .on("click", ->
-          d3.event.preventDefault()
-          updateNavigator path.concat(pathFragment)
-        )
-  else
-    codeBlock.style("display", null).text JSON.stringify(result, null, 4)
-
-getQueryFromPath = (path)->
-  query = path.reduce ((pv, cv, index, array)->
-    if index isnt 0
-      pv += "."
-    if node = cv.match /^(.*)\[(\d*)]$/
-      console.log node
-      pv += node[1]
-      pv += "[#{node[2]}]" if node[2]
-      pv
-    else
-      pv += cv
-  ), ""
-  query
-
 getPathFragmentForKey = (data, key)->
   if data[key] instanceof Array
-    return key + "[]"
-  else if data[key] instanceof Object
-    return key
+    if data[key].length is 1
+      return new BangJsonPathFragment { fragment: key + "[0]" }
+    else
+      return new BangJsonPathFragment { fragment: key + "[]" }
   else
-    return key + "#"
+    return new BangJsonPathFragment {fragment: key }
 
 renderQueryForm = (root)->
   root.html("""
@@ -158,10 +260,6 @@ renderQueryForm = (root)->
   </div>
 </div>
 """)
-  if bang instanceof Array
-    $("#query").val("_.size(bang)")
-  else
-    $("#query").val("_.keys(bang)")
 
   $("#runQuery").click didRunQuery
   $("#reset").click didReset

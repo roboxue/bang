@@ -9,7 +9,14 @@
   "homepage_url": "https://github.com/roboxue/bang",
 
   "content_scripts": [ {
-    "js": [ "lib/jquery/jquery.js", "lib/d3/d3.js", "lib/bootstrap/bootstrap.js", "lib/underscore/underscore.js", "lib/bang.js" ],
+    "js": [
+      "lib/jquery/jquery.js",
+      "lib/d3/d3.js",
+      "lib/bootstrap/bootstrap.js",
+      "lib/underscore/underscore.js",
+      "lib/backbone/backbone.js",
+      "lib/bang.js"
+    ],
     "matches": [ "<all_urls>" ]
   } ],
   "web_accessible_resources": ["lib/bootstrap/bootstrap.css"]
