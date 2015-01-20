@@ -10,7 +10,7 @@ module.exports = (grunt) ->
     watch:
       app:
         files: '**/*.coffee'
-        tasks: ['coffee']
+        tasks: ['coffee', 'copy']
     bower:
       install:
         options:
@@ -21,12 +21,20 @@ module.exports = (grunt) ->
           cleanTargetDir: false,
           cleanBowerDir: false,
           bowerOptions: {}
+    copy:
+      dist:
+        files: [
+          {expand: true, src: ['lib/**'], dest: 'dist/', filter: 'isFile'}
+          {src: ['manifest.json'], dest: 'dist/'}
+        ]
+          
 
   # These plugins provide necessary tasks.
   grunt.loadNpmTasks 'grunt-bower-task'
   grunt.loadNpmTasks 'grunt-contrib-coffee'
+  grunt.loadNpmTasks 'grunt-contrib-copy'
   grunt.loadNpmTasks 'grunt-contrib-watch'
 
   # Default task.
-  grunt.registerTask 'default', ['coffee', 'bower']
+  grunt.registerTask 'default', ['coffee', 'bower', 'copy']
 
