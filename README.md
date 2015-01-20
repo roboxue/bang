@@ -17,6 +17,8 @@ Frontend JSON workspace, a Chrome extension
 
 2. Follow https://developer.chrome.com/extensions/getstarted#unpacked
 
+3. Load the plugin from `dist` folder
+
 > a. Visit chrome://extensions in your browser (or open up the Chrome menu by clicking the icon to the far right of the Omnibox.  The menu's icon is three horizontal bars. and select Extensions under the Tools menu to get to the same place).
 >
 > b. Ensure that the Developer mode checkbox in the top right-hand corner is checked.
