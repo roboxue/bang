@@ -115,10 +115,14 @@
     BangJsonPath.prototype.getQuery = function(path) {
       var reducer;
       reducer = (function(pv, cv, index, array) {
-        if (index > 0) {
-          pv += ".";
+        if (index === 0) {
+          return cv.getQueryFragment();
         }
-        return pv += cv.getQueryFragment();
+        if (cv.getFragmentType() === "Value") {
+          return pv + ("['" + (cv.getQueryFragment()) + "']");
+        } else {
+          return pv + "." + cv.getQueryFragment();
+        }
       });
       if (path) {
         return path.reduce(reducer, "");
@@ -128,13 +132,18 @@
     };
 
     BangJsonPath.prototype.getDisplayedQuery = function() {
-      return this.reduce((function(pv, cv, index, array) {
-        if (index > 0) {
-          return pv += "." + cv.getQueryFragment();
-        } else {
+      var reducer;
+      reducer = (function(pv, cv, index, array) {
+        if (index === 0) {
           return pv;
         }
-      }), this.baseExpression);
+        if (cv.getFragmentType() === "Value") {
+          return pv + ("['" + (cv.getQueryFragment()) + "']");
+        } else {
+          return pv + "." + cv.getQueryFragment();
+        }
+      });
+      return this.reduce(reducer, this.baseExpression);
     };
 
     BangJsonPath.prototype.navigateTo = function(index) {
@@ -172,7 +181,8 @@
       header.append("span").attr("class", "panel-title").text("JSON Navigator");
       panelBody = root.append("div").attr("class", "panel-body");
       this.breadcrumbUl = panelBody.append("ul").attr("class", "breadcrumb");
-      this.codeBlockPre = panelBody.append("pre").style("display", "none");
+      this.codeBlockPre = panelBody.append("pre");
+      $(this.codeBlockPre.node()).hide();
       this.arrayContentTable = root.append("table").attr("class", "table");
       this.indexSelectorDiv = root.append("div").attr("class", "panel-footer").append("div").attr("class", "form-inline");
       return this.listenTo(this.model, "path:update", this.updateNavigator);
@@ -212,17 +222,18 @@
       type = path.last().getFragmentType();
       if (result instanceof Array) {
         if (type === "ArrayRoot") {
-          return this.updateArrayContent(result);
+          this.updateArrayContent(result);
         } else if (type === "ArrayKey") {
-          return this.updateArrayPluckView(result, path.last().getArrayKeyName());
+          this.updateArrayPluckView(result, path.last().getArrayKeyName());
         }
       } else if (result instanceof Object) {
         this.updateKeyValuePair(result);
-        if (type === "ArrayElement") {
-          return this.updateArrayNavigator(path.last().getArrayIndex());
-        }
       } else {
-        return this.codeBlockPre.style("display", null).html(prettyPrint(result));
+        this.codeBlockPre.html(prettyPrint(result));
+        $(this.codeBlockPre.node()).show();
+      }
+      if (type === "ArrayElement") {
+        return this.updateArrayNavigator(path.last().getArrayIndex());
       }
     };
 
@@ -296,6 +307,9 @@
         });
         if (_.size(keyStats) > 0) {
           return this.updateArraySchemaTable(_.pairs(keyStats), result);
+        } else {
+          this.codeBlockPre.html(prettyPrint(result));
+          return $(this.codeBlockPre.node()).show();
         }
       }
     };
@@ -349,7 +363,8 @@
     BangJsonView.prototype.clear = function() {
       this.breadcrumbUl.text("");
       this.indexSelectorDiv.text("");
-      this.codeBlockPre.style("display", "none").text("");
+      this.codeBlockPre.text("");
+      $(this.codeBlockPre.node()).hide();
       return this.arrayContentTable.text("");
     };
 
@@ -375,8 +390,8 @@
     });
     bangJsonView.render();
     renderResponse(responseRow.append("div").attr("class", "col-lg-12 col-md-12 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-success"));
-    $(".panel-heading").css("word-break", "break-all");
-    $(".panel-toggle").css("cursor", "pointer").click(function(ev) {
+    $(".panel-heading");
+    $(".panel-toggle").click(function(ev) {
       ev.preventDefault();
       ev.stopPropagation();
       return $(ev.currentTarget).parent().siblings(".panel-body").toggle();
@@ -420,7 +435,9 @@
     _ref = runQuery(query), error = _ref.error, result = _ref.result;
     console.log(error, result);
     if (error) {
-      return bangJsonView.codeBlockPre.style("display", null).text(error);
+      bangJsonView.codeBlockPre.text(error);
+      bangJsonView.codeBlockPre.text(error);
+      return $(bangJsonView.codeBlockPre.node()).show();
     } else {
       queryResult = result;
       bangJsonView.model.baseExpression = query;

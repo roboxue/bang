@@ -81,9 +81,11 @@ class BangJsonPath extends Backbone.Collection
 
   getQuery: (path)->
     reducer = ((pv, cv, index, array)->
-      if index > 0
-        pv += "."
-      pv += cv.getQueryFragment()
+      return cv.getQueryFragment() if index is 0
+      if cv.getFragmentType() is "Value"
+        pv + "['#{cv.getQueryFragment()}']"
+      else
+        pv + "." + cv.getQueryFragment()
     )
     if path
       path.reduce reducer, ""
@@ -91,12 +93,14 @@ class BangJsonPath extends Backbone.Collection
       @reduce reducer, ""
 
   getDisplayedQuery: ->
-    @reduce ((pv, cv, index, array)->
-      if index > 0
-        pv += "." + cv.getQueryFragment()
+    reducer = ((pv, cv, index, array)->
+      return pv if index is 0
+      if cv.getFragmentType() is "Value"
+        pv + "['#{cv.getQueryFragment()}']"
       else
-        pv
-    ), @baseExpression
+        pv + "." + cv.getQueryFragment()
+    )
+    @reduce reducer, @baseExpression
 
   navigateTo: (index)->
     while @models.length > Math.max(index + 1, 0)
@@ -119,7 +123,8 @@ class BangJsonView extends Backbone.View
     # For rendering json path
     @breadcrumbUl = panelBody.append("ul").attr("class", "breadcrumb")
     # For rendering actual value
-    @codeBlockPre = panelBody.append("pre").style("display", "none")
+    @codeBlockPre = panelBody.append("pre")
+    $(@codeBlockPre.node()).hide()
     # For rendering array contents
     @arrayContentTable = root.append("table").attr("class", "table")
     # For rendering array index selector
@@ -160,10 +165,11 @@ class BangJsonView extends Backbone.View
         @updateArrayPluckView result, path.last().getArrayKeyName()
     else if result instanceof Object
       @updateKeyValuePair result
-      if type is "ArrayElement"
-        @updateArrayNavigator path.last().getArrayIndex()
     else
-      @codeBlockPre.style("display", null).html prettyPrint result
+      @codeBlockPre.html(prettyPrint(result))
+      $(@codeBlockPre.node()).show()
+    if type is "ArrayElement"
+      @updateArrayNavigator path.last().getArrayIndex()
 
   updateArrayNavigator: ([arrayName, arrayIndex])->
     pager = @indexSelectorDiv.append("nav").append("ul").attr("class", "pager")
@@ -227,6 +233,9 @@ class BangJsonView extends Backbone.View
           keyStats[key] = (keyStats[key] or 0) + 1
       if _.size(keyStats) > 0
         @updateArraySchemaTable _.pairs(keyStats), result
+      else
+        @codeBlockPre.html(prettyPrint(result))
+        $(@codeBlockPre.node()).show()
 
   updateArrayPluckView: (result, key)->
     console.log "Pluck View"
@@ -262,7 +271,8 @@ class BangJsonView extends Backbone.View
   clear: ->
     @breadcrumbUl.text ""
     @indexSelectorDiv.text ""
-    @codeBlockPre.style("display", "none").text ""
+    @codeBlockPre.text ""
+    $(@codeBlockPre.node()).hide()
     @arrayContentTable.text ""
 
 render = ->
@@ -278,8 +288,8 @@ render = ->
   }
   bangJsonView.render()
   renderResponse responseRow.append("div").attr("class", "col-lg-12 col-md-12 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-success")
-  $(".panel-heading").css("word-break", "break-all")
-  $(".panel-toggle").css("cursor", "pointer").click (ev)->
+  $(".panel-heading")
+  $(".panel-toggle").click (ev)->
     ev.preventDefault()
     ev.stopPropagation()
     $(ev.currentTarget).parent().siblings(".panel-body").toggle()
@@ -314,7 +324,9 @@ didRunQuery = ->
   { error, result } = runQuery query
   console.log error, result
   if error
-    bangJsonView.codeBlockPre.style("display", null).text error
+    bangJsonView.codeBlockPre.text error
+    bangJsonView.codeBlockPre.text error
+    $(bangJsonView.codeBlockPre.node()).show()
   else
     queryResult = result
     bangJsonView.model.baseExpression = query
