@@ -120,8 +120,6 @@ class BangJsonView extends Backbone.View
     @breadcrumbUl = panelBody.append("ul").attr("class", "breadcrumb")
     # For rendering actual value
     @codeBlockPre = panelBody.append("pre").style("display", "none")
-    # For rendering key value pairs
-    @keyValuePairUl = root.append("ul").attr("class", "list-group")
     # For rendering array contents
     @arrayContentTable = root.append("table").attr("class", "table")
     # For rendering array index selector
@@ -185,14 +183,18 @@ class BangJsonView extends Backbone.View
       pager.append("li").attr("class", "next disabled").append("a").attr("href", "#").html("Next&rarr;")
 
   updateKeyValuePair: (result)->
-    @keyValuePairUl.selectAll("li").data(Object.keys(result)).enter()
-    .append("li").attr("class", "list-group-item").each (key)->
+    @arrayContentTable.append("thead").html """
+      <thead><tr>
+        <th>Key</th><th>Value</th>
+      </tr></thead>
+    """
+    @arrayContentTable.append("tfoot").selectAll("tr").data(Object.keys(result)).enter().append("tr").each (key)->
       if not (result[key] instanceof Array or result[key] instanceof Object)
-        d3.select(this).append("strong").text key
-        d3.select(this).append("span").attr("class", "pull-right").text result[key]
+        d3.select(this).append("th").text key
+        d3.select(this).append("td").text(result[key] or "(empty)")
       else
         pathFragment = getPathFragmentForKey(result, key)
-        d3.select(this).append("strong").append("a").attr("href", "#").text(pathFragment.get("fragment"))
+        d3.select(this).append("th").append("a").attr("href", "#").text(pathFragment.get("fragment"))
         .on("click", ->
           d3.event.preventDefault()
           bangJsonView.model.add pathFragment
@@ -200,9 +202,9 @@ class BangJsonView extends Backbone.View
           bangJsonView.model.trigger "path:update"
         )
         if result[key] instanceof Array
-          d3.select(this).append("span").attr("class", "pull-right").text "Array with #{result[key].length} elements"
+          d3.select(this).append("td").text "Array with #{result[key].length} elements"
         else
-          d3.select(this).append("span").attr("class", "pull-right").text "Object with #{_.size(result[key])} key value pairs"
+          d3.select(this).append("td").text "Object with #{_.size(result[key])} key value pairs"
 
   updateArrayContent: (result)->
     if result.length is 0
@@ -228,17 +230,21 @@ class BangJsonView extends Backbone.View
 
   updateArrayPluckView: (result, key)->
     console.log "Pluck View"
-    @keyValuePairUl.selectAll("li").data(result).enter()
-    .append("li").attr("class", "list-group-item").each (value, i)->
-      d3.select(this).append("strong").append("a").attr("href", "#").text("Element #{i}").on "click", ->
+    @arrayContentTable.append("thead").html """
+      <thead><tr>
+        <th>Index</th><th>Value</th>
+      </tr></thead>
+    """
+    @arrayContentTable.append("tfoot").selectAll("tr").data(result).enter().append("tr").each (value, i)->
+      d3.select(this).append("th").append("a").attr("href", "#").text("Element #{i}").on "click", ->
         bangJsonView.model.pop()
         bangJsonView.model.navigateToArrayElement i
         bangJsonView.model.push({fragment: key}) if value instanceof Object
         bangJsonView.model.trigger "path:update"
       if value instanceof Object
-        d3.select(this).append("pre").html prettyPrint value
+        d3.select(this).append("td").append("pre").html(prettyPrint(value) or "(empty)")
       else
-        d3.select(this).append("span").attr("class", "pull-right").text value
+        d3.select(this).append("td").text(value or "(empty)")
 
   updateArraySchemaTable: (keyStats, array)->
     @arrayContentTable.append("thead").html """
@@ -247,7 +253,7 @@ class BangJsonView extends Backbone.View
       </tr></thead>
     """
     rows = @arrayContentTable.append("tfoot").selectAll("tr").data(keyStats).enter().append("tr")
-    rows.append("td").append("a").attr("href", "#").text(([key])-> key).on "click", ([key])->
+    rows.append("th").append("a").attr("href", "#").text(([key])-> key).on "click", ([key])->
       d3.event.preventDefault()
       bangJsonView.model.push new BangJsonPathFragment {fragment: ":#{key}"}
       bangJsonView.model.trigger "path:update"
@@ -257,7 +263,6 @@ class BangJsonView extends Backbone.View
     @breadcrumbUl.text ""
     @indexSelectorDiv.text ""
     @codeBlockPre.style("display", "none").text ""
-    @keyValuePairUl.text ""
     @arrayContentTable.text ""
 
 render = ->

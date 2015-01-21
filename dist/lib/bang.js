@@ -173,7 +173,6 @@
       panelBody = root.append("div").attr("class", "panel-body");
       this.breadcrumbUl = panelBody.append("ul").attr("class", "breadcrumb");
       this.codeBlockPre = panelBody.append("pre").style("display", "none");
-      this.keyValuePairUl = root.append("ul").attr("class", "list-group");
       this.arrayContentTable = root.append("table").attr("class", "table");
       this.indexSelectorDiv = root.append("div").attr("class", "panel-footer").append("div").attr("class", "form-inline");
       return this.listenTo(this.model, "path:update", this.updateNavigator);
@@ -254,23 +253,24 @@
     };
 
     BangJsonView.prototype.updateKeyValuePair = function(result) {
-      return this.keyValuePairUl.selectAll("li").data(Object.keys(result)).enter().append("li").attr("class", "list-group-item").each(function(key) {
+      this.arrayContentTable.append("thead").html("<thead><tr>\n  <th>Key</th><th>Value</th>\n</tr></thead>");
+      return this.arrayContentTable.append("tfoot").selectAll("tr").data(Object.keys(result)).enter().append("tr").each(function(key) {
         var pathFragment;
         if (!(result[key] instanceof Array || result[key] instanceof Object)) {
-          d3.select(this).append("strong").text(key);
-          return d3.select(this).append("span").attr("class", "pull-right").text(result[key]);
+          d3.select(this).append("th").text(key);
+          return d3.select(this).append("td").text(result[key] || "(empty)");
         } else {
           pathFragment = getPathFragmentForKey(result, key);
-          d3.select(this).append("strong").append("a").attr("href", "#").text(pathFragment.get("fragment")).on("click", function() {
+          d3.select(this).append("th").append("a").attr("href", "#").text(pathFragment.get("fragment")).on("click", function() {
             d3.event.preventDefault();
             bangJsonView.model.add(pathFragment);
             console.log("Add", pathFragment, bangJsonView.model.models);
             return bangJsonView.model.trigger("path:update");
           });
           if (result[key] instanceof Array) {
-            return d3.select(this).append("span").attr("class", "pull-right").text("Array with " + result[key].length + " elements");
+            return d3.select(this).append("td").text("Array with " + result[key].length + " elements");
           } else {
-            return d3.select(this).append("span").attr("class", "pull-right").text("Object with " + (_.size(result[key])) + " key value pairs");
+            return d3.select(this).append("td").text("Object with " + (_.size(result[key])) + " key value pairs");
           }
         }
       });
@@ -302,8 +302,9 @@
 
     BangJsonView.prototype.updateArrayPluckView = function(result, key) {
       console.log("Pluck View");
-      return this.keyValuePairUl.selectAll("li").data(result).enter().append("li").attr("class", "list-group-item").each(function(value, i) {
-        d3.select(this).append("strong").append("a").attr("href", "#").text("Element " + i).on("click", function() {
+      this.arrayContentTable.append("thead").html("<thead><tr>\n  <th>Index</th><th>Value</th>\n</tr></thead>");
+      return this.arrayContentTable.append("tfoot").selectAll("tr").data(result).enter().append("tr").each(function(value, i) {
+        d3.select(this).append("th").append("a").attr("href", "#").text("Element " + i).on("click", function() {
           bangJsonView.model.pop();
           bangJsonView.model.navigateToArrayElement(i);
           if (value instanceof Object) {
@@ -314,9 +315,9 @@
           return bangJsonView.model.trigger("path:update");
         });
         if (value instanceof Object) {
-          return d3.select(this).append("pre").html(prettyPrint(value));
+          return d3.select(this).append("td").append("pre").html(prettyPrint(value) || "(empty)");
         } else {
-          return d3.select(this).append("span").attr("class", "pull-right").text(value);
+          return d3.select(this).append("td").text(value || "(empty)");
         }
       });
     };
@@ -325,7 +326,7 @@
       var rows;
       this.arrayContentTable.append("thead").html("<thead><tr>\n  <th>Key</th><th>Times occurred in elements</th>\n</tr></thead>");
       rows = this.arrayContentTable.append("tfoot").selectAll("tr").data(keyStats).enter().append("tr");
-      rows.append("td").append("a").attr("href", "#").text(function(_arg) {
+      rows.append("th").append("a").attr("href", "#").text(function(_arg) {
         var key;
         key = _arg[0];
         return key;
@@ -349,7 +350,6 @@
       this.breadcrumbUl.text("");
       this.indexSelectorDiv.text("");
       this.codeBlockPre.style("display", "none").text("");
-      this.keyValuePairUl.text("");
       return this.arrayContentTable.text("");
     };
 
