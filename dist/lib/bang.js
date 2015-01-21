@@ -386,6 +386,11 @@
       href: chrome.extension.getURL('lib/bootstrap/bootstrap.css'),
       type: "text/css"
     });
+    root.append("link").attr({
+      rel: "stylesheet",
+      href: chrome.extension.getURL('lib/bang.css'),
+      type: "text/css"
+    });
     return bangJsonView.model.trigger("path:update");
   };
 

@@ -284,6 +284,7 @@ render = ->
     ev.stopPropagation()
     $(ev.currentTarget).parent().siblings(".panel-body").toggle()
   root.append("link").attr({rel: "stylesheet", href: chrome.extension.getURL('lib/bootstrap/bootstrap.css'), type: "text/css"})
+  root.append("link").attr({rel: "stylesheet", href: chrome.extension.getURL('lib/bang.css'), type: "text/css"})
   bangJsonView.model.trigger "path:update"
 
 renderHeader = (root)->

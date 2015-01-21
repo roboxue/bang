@@ -17,9 +17,6 @@
       "lib/backbone/backbone.js",
       "lib/bang.js"
     ],
-    "css": [
-      "lib/bang.css"
-    ],
     "matches": [ "<all_urls>" ]
   } ],
   "web_accessible_resources": ["lib/bootstrap/bootstrap.css", "lib/bang.css"]
