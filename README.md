@@ -1,4 +1,5 @@
-# Bang | 棒！
+# Bang <ruby> 棒 <rt> Bàng</rt></ruby>
+
 Frontend JSON workspace, a Chrome extension
 
 *v0.0.3 Release*
