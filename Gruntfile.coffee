@@ -14,10 +14,10 @@ module.exports = (grunt) ->
     watch:
       app:
         files: ['**/*.coffee', 'manifest.json']
-        tasks: ['coffee', 'copy']
+        tasks: ['coffee', 'copy', 'lineremover']
       stylesheet:
         files: ['**/*.styl']
-        tasks: ['stylus', 'copy']
+        tasks: ['stylus', 'copy', 'lineremover']
     bower:
       install:
         options:
@@ -38,7 +38,12 @@ module.exports = (grunt) ->
           {src: 'lib/bootstrap/glyphicons-halflings-regular.woff', dest: 'dist/lib/fonts/glyphicons-halflings-regular.woff'},
           {src: ['manifest.json'], dest: 'dist/'}
         ]
-          
+    lineremover:
+      excludeSourceMapping:
+        files:
+          'dist/lib/bootstrap/bootstrap.css': 'dist/lib/bootstrap/bootstrap.css'
+        options:
+          exclusionPattern: "sourceMappingURL"
 
   # These plugins provide necessary tasks.
   grunt.loadNpmTasks 'grunt-bower-task'
@@ -46,7 +51,8 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks 'grunt-contrib-copy'
   grunt.loadNpmTasks 'grunt-contrib-watch'
   grunt.loadNpmTasks 'grunt-contrib-stylus'
+  grunt.loadNpmTasks 'grunt-line-remover'
 
   # Default task.
-  grunt.registerTask 'default', ['coffee', 'stylus', 'bower', 'copy']
+  grunt.registerTask 'default', ['coffee', 'stylus', 'bower', 'copy', 'lineremover']
 
