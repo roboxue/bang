@@ -7,10 +7,17 @@ module.exports = (grunt) ->
         src: ['**/*.coffee']
         dest: 'lib'
         ext: '.js'
+    stylus:
+      compile:
+        files:
+          'lib/bang.css': 'src/bang.styl'
     watch:
       app:
         files: ['**/*.coffee', 'manifest.json']
         tasks: ['coffee', 'copy']
+      stylesheet:
+        files: ['**/*.styl']
+        tasks: ['stylus', 'copy']
     bower:
       install:
         options:
@@ -34,7 +41,8 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks 'grunt-contrib-coffee'
   grunt.loadNpmTasks 'grunt-contrib-copy'
   grunt.loadNpmTasks 'grunt-contrib-watch'
+  grunt.loadNpmTasks 'grunt-contrib-stylus'
 
   # Default task.
-  grunt.registerTask 'default', ['coffee', 'bower', 'copy']
+  grunt.registerTask 'default', ['coffee', 'stylus', 'bower', 'copy']
 

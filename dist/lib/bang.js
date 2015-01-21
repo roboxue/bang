@@ -1,5 +1,5 @@
 (function() {
-  var BangJsonPath, BangJsonPathFragment, BangJsonView, bang, bangJsonView, bangUri, didReset, didRunQuery, getPathFragmentForKey, load, queryResult, render, renderHeader, renderQuery, renderQueryForm, renderResponse, runQuery,
+  var BangJsonPath, BangJsonPathFragment, BangJsonView, bang, bangJsonView, bangUri, didReset, didRunQuery, getPathFragmentForKey, load, prettyPrint, queryResult, render, renderHeader, renderQuery, renderQueryForm, renderResponse, replacer, runQuery,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -38,7 +38,7 @@
     BangJsonPathFragment.prototype.getFragmentType = function() {
       var arrayElementRx, arrayRx, keyRx;
       arrayRx = /^(.+)\[]$/;
-      arrayElementRx = /^(.+)\[\d+]$/;
+      arrayElementRx = /^(.+)\[(\d+)]$/;
       keyRx = /^:(.+)$/;
       if (arrayRx.test(this.get("fragment"))) {
         return "ArrayRoot";
@@ -54,8 +54,19 @@
     BangJsonPathFragment.prototype.getArrayKeyName = function() {
       var fullExpression, keyName, keyRx, _ref;
       keyRx = /^:(.+)$/;
-      _ref = this.get("fragment").match(keyRx), fullExpression = _ref[0], keyName = _ref[1];
-      return keyName;
+      if (keyRx.test(this.get("fragment"))) {
+        _ref = this.get("fragment").match(keyRx), fullExpression = _ref[0], keyName = _ref[1];
+        return keyName;
+      }
+    };
+
+    BangJsonPathFragment.prototype.getArrayIndex = function() {
+      var arrayElementRx, arrayIndex, fullExpression, keyName, _ref;
+      arrayElementRx = /^(.+)\[(\d+)]$/;
+      if (arrayElementRx.test(this.get("fragment"))) {
+        _ref = this.get("fragment").match(arrayElementRx), fullExpression = _ref[0], keyName = _ref[1], arrayIndex = _ref[2];
+        return [keyName, parseInt(arrayIndex)];
+      }
     };
 
     BangJsonPathFragment.prototype.getDisplayName = function() {
@@ -73,7 +84,7 @@
 
     BangJsonPathFragment.prototype.getArrayFragment = function(index) {
       var arrayName, arrayRx, fullName, _ref;
-      arrayRx = /^(.+)\[]$/;
+      arrayRx = /^(.+)\[\d*]$/;
       if (arrayRx.test(this.get("fragment"))) {
         _ref = this.get("fragment").match(arrayRx), fullName = _ref[0], arrayName = _ref[1];
         return arrayName + ("[" + index + "]");
@@ -101,13 +112,19 @@
       }
     };
 
-    BangJsonPath.prototype.getQuery = function() {
-      return this.reduce((function(pv, cv, index, array) {
+    BangJsonPath.prototype.getQuery = function(path) {
+      var reducer;
+      reducer = (function(pv, cv, index, array) {
         if (index > 0) {
           pv += ".";
         }
         return pv += cv.getQueryFragment();
-      }), "");
+      });
+      if (path) {
+        return path.reduce(reducer, "");
+      } else {
+        return this.reduce(reducer, "");
+      }
     };
 
     BangJsonPath.prototype.getDisplayedQuery = function() {
@@ -149,15 +166,16 @@
     BangJsonView.prototype.model = BangJsonPath;
 
     BangJsonView.prototype.render = function() {
-      var panelBody, root;
+      var header, panelBody, root;
       root = d3.select(this.el);
-      root.append("div").attr("class", "panel-heading").text("Response Navigator");
+      header = root.append("div").attr("class", "panel-heading");
+      header.append("span").attr("class", "panel-title").text("JSON Navigator");
       panelBody = root.append("div").attr("class", "panel-body");
       this.breadcrumbUl = panelBody.append("ul").attr("class", "breadcrumb");
-      this.indexSelectorDiv = panelBody.append("div").attr("class", "form-inline");
       this.codeBlockPre = panelBody.append("pre").style("display", "none");
       this.keyValuePairUl = root.append("ul").attr("class", "list-group");
       this.arrayContentTable = root.append("table").attr("class", "table");
+      this.indexSelectorDiv = root.append("div").attr("class", "panel-footer").append("div").attr("class", "form-inline");
       return this.listenTo(this.model, "path:update", this.updateNavigator);
     };
 
@@ -192,20 +210,46 @@
           });
         }
       });
+      type = path.last().getFragmentType();
       if (result instanceof Array) {
-        type = path.last().getFragmentType();
-        switch (type) {
-          case "ArrayRoot":
-            return this.updateArrayContent(result);
-          case "ArrayElement":
-            return this.updateArrayContent(result);
-          case "ArrayKey":
-            return this.updateArrayPluckView(result, path.last().getArrayKeyName());
+        if (type === "ArrayRoot") {
+          return this.updateArrayContent(result);
+        } else if (type === "ArrayKey") {
+          return this.updateArrayPluckView(result, path.last().getArrayKeyName());
         }
       } else if (result instanceof Object) {
-        return this.updateKeyValuePair(result);
+        this.updateKeyValuePair(result);
+        if (type === "ArrayElement") {
+          return this.updateArrayNavigator(path.last().getArrayIndex());
+        }
       } else {
-        return this.codeBlockPre.style("display", null).text(JSON.stringify(result, null, 4));
+        return this.codeBlockPre.style("display", null).html(prettyPrint(result));
+      }
+    };
+
+    BangJsonView.prototype.updateArrayNavigator = function(_arg) {
+      var arrayIndex, arrayName, maxLength, pager, query;
+      arrayName = _arg[0], arrayIndex = _arg[1];
+      pager = this.indexSelectorDiv.append("nav").append("ul").attr("class", "pager");
+      query = bangJsonView.model.getQuery(bangJsonView.model.slice(0, bangJsonView.model.length - 1).concat(new BangJsonPathFragment({
+        fragment: arrayName + "[]"
+      })));
+      maxLength = eval(query).length;
+      console.log(query, maxLength, arrayName, arrayIndex);
+      if (arrayIndex > 0) {
+        pager.append("li").attr("class", "previous").append("a").attr("href", "#").html("&larr;Previous").on("click", function() {
+          return bangJsonView.model.navigateToArrayElement(arrayIndex - 1);
+        });
+      } else {
+        pager.append("li").attr("class", "previous disabled").append("a").attr("href", "#").html("&larr;Previous");
+      }
+      pager.append("li").html("" + (arrayIndex + 1) + " / " + maxLength);
+      if (arrayIndex < maxLength - 1) {
+        return pager.append("li").attr("class", "next").append("a").attr("href", "#").html("Next&rarr;").on("click", function() {
+          return bangJsonView.model.navigateToArrayElement(arrayIndex + 1);
+        });
+      } else {
+        return pager.append("li").attr("class", "next disabled").append("a").attr("href", "#").html("Next&rarr;");
       }
     };
 
@@ -235,9 +279,9 @@
     BangJsonView.prototype.updateArrayContent = function(result) {
       var keyStats;
       if (result.length === 0) {
-        return this.indexSelectorDiv.append("div").attr("class", "form-group").html("<span>Empty array</span>");
+        return this.indexSelectorDiv.html("<span>Empty array</span>");
       } else {
-        this.indexSelectorDiv.append("div").attr("class", "form-group").html("<span>Array with " + result.length + " elements</span>\n<input type='number' class='form-control' id='arrayIndex' value='0' min='0' max='" + (result.length - 1) + "'>");
+        this.indexSelectorDiv.append("div").attr("class", "input-group").html("<span class=\"input-group-addon\">Element No.</span>\n<input type='number' class='form-control' id='arrayIndex' value='0' min='0' max='" + (result.length - 1) + "'>\n<span class=\"input-group-addon\">/ " + result.length + "</span>");
         this.indexSelectorDiv.append("button").attr("type", "submit").attr("class", "btn btn-default").text("Go").on("click", function() {
           var index;
           d3.event.preventDefault();
@@ -270,7 +314,7 @@
           return bangJsonView.model.trigger("path:update");
         });
         if (value instanceof Object) {
-          return d3.select(this).append("pre").text(JSON.stringify(value, null, 4));
+          return d3.select(this).append("pre").html(prettyPrint(value));
         } else {
           return d3.select(this).append("span").attr("class", "pull-right").text(value);
         }
@@ -331,11 +375,11 @@
     });
     bangJsonView.render();
     renderResponse(responseRow.append("div").attr("class", "col-lg-12 col-md-12 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-success"));
-    $(".panel-heading").css({
-      cursor: "pointer",
-      "word-break": "break-all"
-    }).click(function(ev) {
-      return $(ev.currentTarget).siblings(".panel-body").toggle();
+    $(".panel-heading").css("word-break", "break-all");
+    $(".panel-toggle").css("cursor", "pointer").click(function(ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      return $(ev.currentTarget).parent().siblings(".panel-body").toggle();
     });
     root.append("link").attr({
       rel: "stylesheet",
@@ -351,12 +395,16 @@
 
   renderResponse = function(root) {
     var header;
-    header = root.append("div").attr("class", "panel-heading").html("Response from <code>" + bangUri + "</code> stored into <strong>bang</strong>");
-    return root.append("div").attr("class", "panel-body").append("pre").text(JSON.stringify(bang, null, 4));
+    header = root.append("div").attr("class", "panel-heading");
+    header.append("span").attr("class", "panel-title").html("Response from <code>" + bangUri + "</code> stored into <strong>bang</strong>");
+    header.append("div").attr("class", "panel-toggle pull-right").text("toggle");
+    return root.append("div").attr("class", "panel-body").append("pre").html(prettyPrint(bang));
   };
 
   renderQuery = function(root) {
-    root.append("div").attr("class", "panel-heading").text("Query");
+    var header;
+    header = root.append("div").attr("class", "panel-heading");
+    header.append("span").attr("class", "panel-title").html("Custom JavaScript Query");
     return renderQueryForm(root.append("div").attr("class", "panel-body"));
   };
 
@@ -436,6 +484,27 @@
     root.html("<div class=\"form-horizontal\">\n  <div class=\"form-group\">\n    <label for=\"query\" class=\"col-sm-2 control-label\">Query</label>\n    <div class=\"col-sm-10\">\n      <textarea class=\"form-control\" id=\"query\" placeholder=\"Any Javascript Expression!\"></textarea>\n    </div>\n  </div>\n  <div class=\"form-group\">\n    <div class=\"col-sm-offset-2 col-sm-10\">\n      <button type=\"submit\" class=\"btn btn-default\" id=\"runQuery\">Run it!</button>\n      <button type=\"reset\" class=\"btn btn-default\" id=\"reset\">Reset</button>\n    </div>\n  </div>\n</div>");
     $("#runQuery").click(didRunQuery);
     return $("#reset").click(didReset);
+  };
+
+  replacer = function(match, pIndent, pKey, pVal, pEnd) {
+    var key, r, str, val;
+    key = '<span class=json-key>';
+    val = '<span class=json-value>';
+    str = '<span class=json-string>';
+    r = pIndent || '';
+    if (pKey) {
+      r = r + key + pKey.replace(/[": ]/g, '') + '</span>: ';
+    }
+    if (pVal) {
+      r = r + (pVal[0] === '"' ? str : val) + pVal + '</span>';
+    }
+    return r + (pEnd || '');
+  };
+
+  prettyPrint = function(obj) {
+    var jsonLine;
+    jsonLine = /^( *)("[\w]+": )?("[^"]*"|[\w.+-]*)?([,[{])?$/mg;
+    return JSON.stringify(obj, null, 3).replace(/&/g, '&amp;').replace(/\\"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(jsonLine, replacer);
   };
 
   load = function() {
