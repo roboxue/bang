@@ -1,5 +1,5 @@
 (function() {
-  var BangJsonPath, BangJsonPathFragment, BangJsonView, bang, bangJsonView, bangUri, didReset, didRunQuery, getPathFragmentForKey, load, prettyPrint, queryResult, render, renderHeader, renderQuery, renderQueryForm, renderResponse, replacer, runQuery,
+  var BangJsonPath, BangJsonPathFragment, BangJsonView, bang, bangJsonView, bangUri, didReset, didRunQuery, getPathFragmentForKey, load, prettyPrint, queryResult, render, renderHeader, renderQuery, renderQueryForm, renderResponse, replacer, runQuery, stringifyPadingSize,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -193,7 +193,6 @@
       this.clear();
       path = this.model;
       query = path.getQuery();
-      console.log("Update Navigator", this.model.models, query);
       _ref = runQuery(query), error = _ref.error, result = _ref.result;
       if (!(option && option.silent)) {
         $("#query").val(path.getDisplayedQuery());
@@ -202,6 +201,9 @@
         return this.breadcrumbUl.text(JSON.stringify(error, null, 4));
       }
       this.breadcrumbUl.selectAll("li").data(this.model.models).enter().append("li").each(function(pathFragment, i) {
+        if (i === 0 && pathFragment.getDisplayName() === "bang") {
+          return d3.select(this).append("strong").text(pathFragment.getDisplayName());
+        }
         if (i === path.length - 1) {
           if (pathFragment.getBaseFragment()) {
             return d3.select(this).append("a").attr("href", "#").text(pathFragment.getDisplayName()).on("click", function() {
@@ -245,9 +247,9 @@
         fragment: arrayName + "[]"
       })));
       maxLength = eval(query).length;
-      console.log(query, maxLength, arrayName, arrayIndex);
       if (arrayIndex > 0) {
         pager.append("li").attr("class", "previous").append("a").attr("href", "#").html("&larr;Previous").on("click", function() {
+          d3.event.preventDefault();
           return bangJsonView.model.navigateToArrayElement(arrayIndex - 1);
         });
       } else {
@@ -256,6 +258,7 @@
       pager.append("li").html("" + (arrayIndex + 1) + " / " + maxLength);
       if (arrayIndex < maxLength - 1) {
         return pager.append("li").attr("class", "next").append("a").attr("href", "#").html("Next&rarr;").on("click", function() {
+          d3.event.preventDefault();
           return bangJsonView.model.navigateToArrayElement(arrayIndex + 1);
         });
       } else {
@@ -275,7 +278,6 @@
           d3.select(this).append("th").append("a").attr("href", "#").text(pathFragment.get("fragment")).on("click", function() {
             d3.event.preventDefault();
             bangJsonView.model.add(pathFragment);
-            console.log("Add", pathFragment, bangJsonView.model.models);
             return bangJsonView.model.trigger("path:update");
           });
           if (result[key] instanceof Array) {
@@ -315,10 +317,10 @@
     };
 
     BangJsonView.prototype.updateArrayPluckView = function(result, key) {
-      console.log("Pluck View");
       this.arrayContentTable.append("thead").html("<thead><tr>\n  <th>Index</th><th>Value</th>\n</tr></thead>");
       return this.arrayContentTable.append("tfoot").selectAll("tr").data(result).enter().append("tr").each(function(value, i) {
         d3.select(this).append("th").append("a").attr("href", "#").text("Element " + i).on("click", function() {
+          d3.event.preventDefault();
           bangJsonView.model.pop();
           bangJsonView.model.navigateToArrayElement(i);
           if (value instanceof Object) {
@@ -379,21 +381,20 @@
     renderHeader(root.append("div").attr("class", "navbar navbar-default"));
     queryRow = root.append("div").attr("class", "row");
     responseRow = root.append("div").attr("class", "row");
-    renderQuery(queryRow.append("div").attr("class", "col-lg-6 col-md-6 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-default").attr("id", "queryPanel"));
     bangJsonView = new BangJsonView({
       model: new BangJsonPath([
         new BangJsonPathFragment({
           fragment: "bang"
         })
       ]),
-      el: queryRow.append("div").attr("class", "col-lg-6 col-md-6 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-success").attr("id", "navigatorPanel").node()
+      el: queryRow.append("div").attr("class", "col-lg-6 col-md-6 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-default").attr("id", "navigatorPanel").node()
     });
     bangJsonView.render();
+    renderQuery(queryRow.append("div").attr("class", "col-lg-6 col-md-6 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-default").attr("id", "queryPanel"));
     renderResponse(responseRow.append("div").attr("class", "col-lg-12 col-md-12 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-success"));
     $(".panel-heading");
     $(".panel-toggle").click(function(ev) {
       ev.preventDefault();
-      ev.stopPropagation();
       return $(ev.currentTarget).parent().siblings(".panel-body").toggle();
     });
     root.append("link").attr({
@@ -410,15 +411,58 @@
   };
 
   renderHeader = function(root) {
-    return root.html("<div class=\"navbar-header\">\n  <a class=\"navbar-brand\" href=\"http://github.com/roboxue/bang\">Bang!</a>\n</div>\n<div class=\"collapse navbar-collapse\">\n  <p class=\"navbar-text\">Lightweight frontend json workspace</p>\n</div>");
+    return root.html("<div class=\"navbar-header\">\n  <a class=\"navbar-brand\" href=\"http://github.com/roboxue/bang\">Bang\n    <ruby>\n     棒 <rt> Bàng</rt>\n    </ruby>\n    <small>(Awesome)</small>\n  </a>\n</div>\n<div class=\"collapse navbar-collapse\">\n  <p class=\"navbar-text\">Lightweight workspace to make your day with <code>JSON</code> awesome - the raw response has been stored into variable <code class=\"bang\">bang</code></p>\n</div>");
   };
 
   renderResponse = function(root) {
     var header;
     header = root.append("div").attr("class", "panel-heading");
-    header.append("span").attr("class", "panel-title").html("Response from <code>" + bangUri + "</code> stored into <strong>bang</strong>");
+    header.append("span").attr("class", "panel-title").html("Response from <code>" + bangUri + "</code> stored into <code class='bang'>bang</code>");
     header.append("div").attr("class", "panel-toggle pull-right").text("toggle");
-    return root.append("div").attr("class", "panel-body").append("pre").html(prettyPrint(bang));
+    root.append("div").attr("class", "panel-body").append("div").attr("id", "rawResponse").html(prettyPrint(bang));
+    $("#rawResponse [data-index][data-folded]").each(function() {
+      var childSiblings, currentIndex, node;
+      node = $(this);
+      currentIndex = parseInt(node.data("index"));
+      childSiblings = node.nextUntil("[data-index=" + currentIndex + "]").filter(function() {
+        return $(this).data("index") > currentIndex;
+      });
+      if (childSiblings.length) {
+        node.find(".glyphicon").addClass("glyphicon-minus");
+        return node.css("cursor", "pointer");
+      }
+    });
+    return $("#rawResponse [data-index][data-folded]").click(function(ev) {
+      var childSiblings, currentIndex, node;
+      node = $(ev.currentTarget);
+      currentIndex = parseInt(node.data("index"));
+      childSiblings = node.nextUntil("[data-index=" + currentIndex + "]").filter(function() {
+        return $(this).data("index") > currentIndex;
+      });
+      if (childSiblings) {
+        if (node.data("folded") === false) {
+          node.data("folded", true);
+          node.find(".glyphicon").removeClass("glyphicon-minus").addClass("glyphicon-plus").text("");
+          childSiblings.hide();
+          return childSiblings.each(function() {
+            var foldedTimes;
+            foldedTimes = $(this).data("folds") ? parseInt($(this).data("folds")) + 1 : 1;
+            return $(this).data("folds", foldedTimes);
+          });
+        } else {
+          node.data("folded", false);
+          node.find(".glyphicon").removeClass("glyphicon-plus").addClass("glyphicon-minus").text("");
+          return childSiblings.each(function() {
+            var foldedTimes;
+            foldedTimes = $(this).data("folds") ? parseInt($(this).data("folds")) - 1 : 0;
+            $(this).data("folds", foldedTimes);
+            if (foldedTimes === 0) {
+              return $(this).show();
+            }
+          });
+        }
+      }
+    });
   };
 
   renderQuery = function(root) {
@@ -433,7 +477,6 @@
     query = $("#query").val();
     bangJsonView.clear();
     _ref = runQuery(query), error = _ref.error, result = _ref.result;
-    console.log(error, result);
     if (error) {
       bangJsonView.codeBlockPre.text(error);
       bangJsonView.codeBlockPre.text(error);
@@ -505,28 +548,32 @@
   renderQueryForm = function(root) {
     root.html("<div class=\"form-horizontal\">\n  <div class=\"form-group\">\n    <label for=\"query\" class=\"col-sm-2 control-label\">Query</label>\n    <div class=\"col-sm-10\">\n      <textarea class=\"form-control\" id=\"query\" placeholder=\"Any Javascript Expression!\"></textarea>\n    </div>\n  </div>\n  <div class=\"form-group\">\n    <div class=\"col-sm-offset-2 col-sm-10\">\n      <button type=\"submit\" class=\"btn btn-default\" id=\"runQuery\">Run it!</button>\n      <button type=\"reset\" class=\"btn btn-default\" id=\"reset\">Reset</button>\n    </div>\n  </div>\n</div>");
     $("#runQuery").click(didRunQuery);
-    return $("#reset").click(didReset);
+    return $("#reset, .bang").click(didReset);
   };
 
+  stringifyPadingSize = 4;
+
   replacer = function(match, pIndent, pKey, pVal, pEnd) {
-    var key, r, str, val;
+    var index, key, r, str, val;
     key = '<span class=json-key>';
     val = '<span class=json-value>';
     str = '<span class=json-string>';
     r = pIndent || '';
+    index = r.length / stringifyPadingSize;
+    r = r.replace(/\s/g, '&nbsp;');
     if (pKey) {
       r = r + key + pKey.replace(/[": ]/g, '') + '</span>: ';
     }
     if (pVal) {
       r = r + (pVal[0] === '"' ? str : val) + pVal + '</span>';
     }
-    return r + (pEnd || '');
+    return "<p data-folded='false' data-index='" + index + "' class='json-row'><span class='glyphicon col-sm-1'></span><span class='col-sm-11 json-content'>" + (r + (pEnd || '')) + "</span></p>";
   };
 
   prettyPrint = function(obj) {
     var jsonLine;
-    jsonLine = /^( *)("[\w]+": )?("[^"]*"|[\w.+-]*)?([,[{])?$/mg;
-    return JSON.stringify(obj, null, 3).replace(/&/g, '&amp;').replace(/\\"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(jsonLine, replacer);
+    jsonLine = /^( *)("[\w]+": )?("[^"]*"|[\w.+-]*)?([,\[\{}\]]*)?$/mg;
+    return JSON.stringify(obj, null, stringifyPadingSize).replace(/&/g, '&amp;').replace(/\\"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(jsonLine, replacer);
   };
 
   load = function() {
@@ -543,9 +590,9 @@
       bangUri = document.location.href;
     } catch (_error) {
       ex = _error;
-      console.warn("Document not valid json, bang will not work: " + ex);
+      console.log("Document not valid json, bang will not work: " + ex);
     }
-    console.warn("Bang can't work on HTML and XML pages");
+    console.log("Bang can't work on HTML and XML pages");
     return render();
   };
 

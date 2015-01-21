@@ -19,5 +19,9 @@
     ],
     "matches": [ "<all_urls>" ]
   } ],
-  "web_accessible_resources": ["lib/bootstrap/bootstrap.css", "lib/bang.css"]
+  "web_accessible_resources": [
+    "lib/bootstrap/bootstrap.css",
+    "lib/bang.css",
+    "lib/fonts/glyphicons-halflings-regular.woff"
+  ]
 }

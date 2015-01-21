@@ -136,11 +136,12 @@ class BangJsonView extends Backbone.View
     @clear()
     path = @model
     query = path.getQuery()
-    console.log "Update Navigator", @model.models, query
     {error, result} = runQuery query
     $("#query").val path.getDisplayedQuery() unless option and option.silent
     return @breadcrumbUl.text JSON.stringify(error, null, 4) if error
     @breadcrumbUl.selectAll("li").data(@model.models).enter().append("li").each (pathFragment, i)->
+      if i is 0 and pathFragment.getDisplayName() is "bang"
+        return d3.select(this).append("strong").text(pathFragment.getDisplayName())
       if i is path.length - 1
         # return a link to the array base for an array item at the last position
         if pathFragment.getBaseFragment()
@@ -175,15 +176,16 @@ class BangJsonView extends Backbone.View
     pager = @indexSelectorDiv.append("nav").append("ul").attr("class", "pager")
     query = bangJsonView.model.getQuery bangJsonView.model.slice(0, bangJsonView.model.length - 1).concat(new BangJsonPathFragment({fragment: arrayName + "[]"}))
     maxLength = eval(query).length
-    console.log query, maxLength, arrayName, arrayIndex
     if arrayIndex > 0
       pager.append("li").attr("class", "previous").append("a").attr("href", "#").html("&larr;Previous").on "click", ->
+        d3.event.preventDefault()
         bangJsonView.model.navigateToArrayElement arrayIndex - 1
     else
       pager.append("li").attr("class", "previous disabled").append("a").attr("href", "#").html("&larr;Previous")
     pager.append("li").html("#{arrayIndex + 1} / #{maxLength}")
     if arrayIndex < maxLength - 1
       pager.append("li").attr("class", "next").append("a").attr("href", "#").html("Next&rarr;").on "click", ->
+        d3.event.preventDefault()
         bangJsonView.model.navigateToArrayElement arrayIndex + 1
     else
       pager.append("li").attr("class", "next disabled").append("a").attr("href", "#").html("Next&rarr;")
@@ -204,7 +206,6 @@ class BangJsonView extends Backbone.View
         .on("click", ->
           d3.event.preventDefault()
           bangJsonView.model.add pathFragment
-          console.log "Add", pathFragment, bangJsonView.model.models
           bangJsonView.model.trigger "path:update"
         )
         if result[key] instanceof Array
@@ -238,7 +239,6 @@ class BangJsonView extends Backbone.View
         $(@codeBlockPre.node()).show()
 
   updateArrayPluckView: (result, key)->
-    console.log "Pluck View"
     @arrayContentTable.append("thead").html """
       <thead><tr>
         <th>Index</th><th>Value</th>
@@ -246,6 +246,7 @@ class BangJsonView extends Backbone.View
     """
     @arrayContentTable.append("tfoot").selectAll("tr").data(result).enter().append("tr").each (value, i)->
       d3.select(this).append("th").append("a").attr("href", "#").text("Element #{i}").on "click", ->
+        d3.event.preventDefault()
         bangJsonView.model.pop()
         bangJsonView.model.navigateToArrayElement i
         bangJsonView.model.push({fragment: key}) if value instanceof Object
@@ -281,17 +282,16 @@ render = ->
   renderHeader root.append("div").attr("class", "navbar navbar-default")
   queryRow = root.append("div").attr("class", "row")
   responseRow = root.append("div").attr("class", "row")
-  renderQuery queryRow.append("div").attr("class", "col-lg-6 col-md-6 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-default").attr("id", "queryPanel")
   bangJsonView = new BangJsonView {
     model: new BangJsonPath [new BangJsonPathFragment({fragment: "bang"})]
-    el: queryRow.append("div").attr("class", "col-lg-6 col-md-6 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-success").attr("id", "navigatorPanel").node()
+    el: queryRow.append("div").attr("class", "col-lg-6 col-md-6 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-default").attr("id", "navigatorPanel").node()
   }
   bangJsonView.render()
+  renderQuery queryRow.append("div").attr("class", "col-lg-6 col-md-6 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-default").attr("id", "queryPanel")
   renderResponse responseRow.append("div").attr("class", "col-lg-12 col-md-12 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-success")
   $(".panel-heading")
   $(".panel-toggle").click (ev)->
     ev.preventDefault()
-    ev.stopPropagation()
     $(ev.currentTarget).parent().siblings(".panel-body").toggle()
   root.append("link").attr({rel: "stylesheet", href: chrome.extension.getURL('lib/bootstrap/bootstrap.css'), type: "text/css"})
   root.append("link").attr({rel: "stylesheet", href: chrome.extension.getURL('lib/bang.css'), type: "text/css"})
@@ -300,18 +300,51 @@ render = ->
 renderHeader = (root)->
   root.html """
   <div class="navbar-header">
-    <a class="navbar-brand" href="http://github.com/roboxue/bang">Bang!</a>
+    <a class="navbar-brand" href="http://github.com/roboxue/bang">Bang
+      <ruby>
+       棒 <rt> Bàng</rt>
+      </ruby>
+      <small>(Awesome)</small>
+    </a>
   </div>
   <div class="collapse navbar-collapse">
-    <p class="navbar-text">Lightweight frontend json workspace</p>
+    <p class="navbar-text">Lightweight workspace to make your day with <code>JSON</code> awesome - the raw response has been stored into variable <code class="bang">bang</code></p>
   </div>
   """
 
 renderResponse = (root)->
   header = root.append("div").attr("class", "panel-heading")
-  header.append("span").attr("class", "panel-title").html("Response from <code>#{bangUri}</code> stored into <strong>bang</strong>")
+  header.append("span").attr("class", "panel-title").html("Response from <code>#{bangUri}</code> stored into <code class='bang'>bang</code>")
   header.append("div").attr("class", "panel-toggle pull-right").text("toggle")
-  root.append("div").attr("class", "panel-body").append("pre").html prettyPrint(bang)
+  root.append("div").attr("class", "panel-body").append("div").attr("id", "rawResponse").html prettyPrint(bang)
+  $("#rawResponse [data-index][data-folded]").each ->
+    node = $(this)
+    currentIndex = parseInt node.data("index")
+    childSiblings = node.nextUntil("[data-index=#{currentIndex}]").filter ->
+      $(this).data("index") > currentIndex
+    if childSiblings.length
+      node.find(".glyphicon").addClass("glyphicon-minus")
+      node.css("cursor", "pointer")
+  $("#rawResponse [data-index][data-folded]").click (ev)->
+    node = $(ev.currentTarget)
+    currentIndex = parseInt node.data("index")
+    childSiblings = node.nextUntil("[data-index=#{currentIndex}]").filter ->
+      $(this).data("index") > currentIndex
+    if childSiblings
+      if node.data("folded") is false
+        node.data("folded", true)
+        node.find(".glyphicon").removeClass("glyphicon-minus").addClass("glyphicon-plus").text("")
+        childSiblings.hide()
+        childSiblings.each ->
+          foldedTimes = if $(this).data("folds") then parseInt($(this).data("folds")) + 1 else 1
+          $(this).data("folds", foldedTimes)
+      else
+        node.data("folded", false)
+        node.find(".glyphicon").removeClass("glyphicon-plus").addClass("glyphicon-minus").text("")
+        childSiblings.each ->
+          foldedTimes = if $(this).data("folds") then parseInt($(this).data("folds")) - 1 else 0
+          $(this).data("folds", foldedTimes)
+          $(this).show() if foldedTimes is 0
 
 renderQuery = (root)->
   header = root.append("div").attr("class", "panel-heading")
@@ -322,7 +355,6 @@ didRunQuery = ->
   query = $("#query").val()
   bangJsonView.clear()
   { error, result } = runQuery query
-  console.log error, result
   if error
     bangJsonView.codeBlockPre.text error
     bangJsonView.codeBlockPre.text error
@@ -380,22 +412,26 @@ renderQueryForm = (root)->
 """)
 
   $("#runQuery").click didRunQuery
-  $("#reset").click didReset
+  $("#reset, .bang").click didReset
+
+stringifyPadingSize = 4
 
 replacer = (match, pIndent, pKey, pVal, pEnd)->
   key = '<span class=json-key>'
   val = '<span class=json-value>'
   str = '<span class=json-string>'
   r = pIndent or ''
+  index = r.length / stringifyPadingSize
+  r = r.replace(/\s/g, '&nbsp;')
   if pKey
     r = r + key + pKey.replace(/[": ]/g, '') + '</span>: '
   if pVal
     r = r + (if pVal[0] is '"' then str else val) + pVal + '</span>'
-  r + (pEnd or '')
+  "<p data-folded='false' data-index='#{index}' class='json-row'><span class='glyphicon col-sm-1'></span><span class='col-sm-11 json-content'>#{r + (pEnd or '')}</span></p>"
 
 prettyPrint = (obj)->
-  jsonLine = /^( *)("[\w]+": )?("[^"]*"|[\w.+-]*)?([,[{])?$/mg
-  JSON.stringify(obj, null, 3)
+  jsonLine = /^( *)("[\w]+": )?("[^"]*"|[\w.+-]*)?([,\[\{}\]]*)?$/mg
+  JSON.stringify(obj, null, stringifyPadingSize)
   .replace(/&/g, '&amp;').replace(/\\"/g, '&quot;')
   .replace(/</g, '&lt;').replace(/>/g, '&gt;')
   .replace(jsonLine, replacer)
@@ -408,8 +444,8 @@ load = ->
     bang = JSON.parse data
     bangUri = document.location.href
   catch ex
-    console.warn "Document not valid json, bang will not work: #{ex}"
-  console.warn "Bang can't work on HTML and XML pages"
+    console.log "Document not valid json, bang will not work: #{ex}"
+  console.log "Bang can't work on HTML and XML pages"
   render()
 
 load()
