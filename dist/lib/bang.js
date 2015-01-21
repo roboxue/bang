@@ -1,5 +1,5 @@
 (function() {
-  var BangJsonPath, BangJsonPathFragment, BangJsonView, bang, bangJsonView, bangUri, didReset, didRunQuery, getPathFragmentForKey, load, prettyPrint, queryResult, render, renderHeader, renderQuery, renderQueryForm, renderResponse, replacer, runQuery, stringifyPadingSize,
+  var BangJsonPath, BangJsonPathFragment, BangJsonView, bang, bangJsonView, bangUri, didReset, didRunQuery, getPathFragmentForKey, load, originBody, prettyPrint, queryResult, render, renderHeader, renderQuery, renderQueryForm, renderResponse, replacer, runQuery, stringifyPadingSize,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -10,6 +10,8 @@
   queryResult = null;
 
   bangJsonView = null;
+
+  originBody = null;
 
   BangJsonPathFragment = (function(_super) {
     __extends(BangJsonPathFragment, _super);
@@ -411,7 +413,11 @@
   };
 
   renderHeader = function(root) {
-    return root.html("<div class=\"navbar-header\">\n  <a class=\"navbar-brand\" href=\"http://github.com/roboxue/bang\">Bang\n    <ruby>\n     棒 <rt> Bàng</rt>\n    </ruby>\n    <small>(Awesome)</small>\n  </a>\n</div>\n<div class=\"collapse navbar-collapse\">\n  <p class=\"navbar-text\">Lightweight workspace to make your day with <code>JSON</code> awesome - the raw response has been stored into variable <code class=\"bang\">bang</code></p>\n</div>");
+    root.html("<div class=\"navbar-header\">\n  <a class=\"navbar-brand\" href=\"http://github.com/roboxue/bang\">Bang\n    <ruby>\n     棒 <rt> Bàng</rt>\n    </ruby>\n    <small>(Awesome)</small>\n  </a>\n</div>\n<div class=\"collapse navbar-collapse\">\n  <p class=\"navbar-text\">Lightweight awesome <code>JSON</code> workspace - the raw response is in variable <code class=\"bang\">bang</code></p>\n  <p class=\"navbar-text navbar-right\"><a href=\"#\" class=\"navbar-link\" id=\"dismiss\">Dismiss Workspace</a></p>\n</div>");
+    return $("#dismiss").click(function(ev) {
+      ev.preventDefault();
+      return d3.select("body").text("").append("pre").html(JSON.stringify(JSON.parse(originBody), null, stringifyPadingSize));
+    });
   };
 
   renderResponse = function(root) {
@@ -577,16 +583,16 @@
   };
 
   load = function() {
-    var data, ex;
+    var ex;
     try {
       if (!(document.body && (document.body.childNodes[0] && document.body.childNodes[0].tagName === "PRE" || document.body.children.length === 0))) {
         return;
       }
-      data = document.body.children.length ? $("pre").text() : document.body;
-      if (!data) {
+      originBody = document.body.children.length ? $("pre").text() : document.body;
+      if (!originBody) {
         return;
       }
-      bang = JSON.parse(data);
+      bang = JSON.parse(originBody);
       bangUri = document.location.href;
     } catch (_error) {
       ex = _error;

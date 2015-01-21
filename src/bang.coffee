@@ -3,6 +3,7 @@ bang = null
 bangUri = null
 queryResult = null
 bangJsonView = null
+originBody = null
 
 class BangJsonPathFragment extends Backbone.Model
   getQueryFragment: ->
@@ -308,9 +309,13 @@ renderHeader = (root)->
     </a>
   </div>
   <div class="collapse navbar-collapse">
-    <p class="navbar-text">Lightweight workspace to make your day with <code>JSON</code> awesome - the raw response has been stored into variable <code class="bang">bang</code></p>
+    <p class="navbar-text">Lightweight awesome <code>JSON</code> workspace - the raw response is in variable <code class="bang">bang</code></p>
+    <p class="navbar-text navbar-right"><a href="#" class="navbar-link" id="dismiss">Dismiss Workspace</a></p>
   </div>
   """
+  $("#dismiss").click (ev)->
+    ev.preventDefault()
+    d3.select("body").text("").append("pre").html JSON.stringify(JSON.parse(originBody), null, stringifyPadingSize)
 
 renderResponse = (root)->
   header = root.append("div").attr("class", "panel-heading")
@@ -439,9 +444,9 @@ prettyPrint = (obj)->
 load = ->
   try
     return unless document.body && (document.body.childNodes[0] && document.body.childNodes[0].tagName == "PRE" || document.body.children.length == 0)
-    data = if document.body.children.length then $("pre").text() else document.body
-    return unless data
-    bang = JSON.parse data
+    originBody = if document.body.children.length then $("pre").text() else document.body
+    return unless originBody
+    bang = JSON.parse originBody
     bangUri = document.location.href
   catch ex
     console.log "Document not valid json, bang will not work: #{ex}"
