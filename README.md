@@ -1,8 +1,20 @@
 # Bang | 棒！
 Frontend JSON workspace, a Chrome extension
 
-*v0.0.2 Release*
-![screen shot 2015-01-19 at 17 55 15](https://cloud.githubusercontent.com/assets/4080835/5809943/58f7f7e6-a004-11e4-971a-17affd4d09bc.png)
+*v0.0.3 Release*
+Hightlights:
+
+##### Custom Javascript expression being applied on JSON response
+Supporting [Underscore](http://underscorejs.org/), [Backbone](backbonejs.org), [d3](d3js.org), and [jquery](jquery.com)
+![screen shot 2015-01-21 at 00 29 58](https://cloud.githubusercontent.com/assets/4080835/5832066/9d032356-a104-11e4-9243-2a35e7cf3fae.png)
+
+##### Check JSON array's scheme on the fly
+![screen shot 2015-01-21 at 00 25 36](https://cloud.githubusercontent.com/assets/4080835/5832040/0470745e-a104-11e4-91c5-5ea167c047bc.png)
+
+![screen shot 2015-01-21 at 00 17 40](https://cloud.githubusercontent.com/assets/4080835/5832011/4a77a1bc-a103-11e4-8bb7-61c680204a11.png)
+
+##### Browse easily within an array
+![screen shot 2015-01-21 at 00 17 52](https://cloud.githubusercontent.com/assets/4080835/5832012/4a78ad5a-a103-11e4-96ad-8a509b01e2eb.png)
 
 (Not released yet, in dev mode)
 
