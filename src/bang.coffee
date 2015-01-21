@@ -25,7 +25,7 @@ class BangJsonPathFragment extends Backbone.Model
 
   getFragmentType: ->
     arrayRx = /^(.+)\[]$/
-    arrayElementRx = /^(.+)\[\d+]$/
+    arrayElementRx = /^(.+)\[(\d+)]$/
     keyRx = /^:(.+)$/
     if arrayRx.test @get("fragment")
       "ArrayRoot"
@@ -38,8 +38,15 @@ class BangJsonPathFragment extends Backbone.Model
 
   getArrayKeyName: ->
     keyRx = /^:(.+)$/
-    [fullExpression, keyName] = @get("fragment").match keyRx
-    keyName
+    if keyRx.test @get("fragment")
+      [fullExpression, keyName] = @get("fragment").match keyRx
+      keyName
+
+  getArrayIndex: ->
+    arrayElementRx = /^(.+)\[(\d+)]$/
+    if arrayElementRx.test @get("fragment")
+      [fullExpression, keyName, arrayIndex] = @get("fragment").match arrayElementRx
+      [keyName, parseInt(arrayIndex)]
 
   getDisplayName: ->
     @get("fragment")
@@ -57,7 +64,7 @@ class BangJsonPathFragment extends Backbone.Model
     # Determine the javascript json navigation code fragment for array element
     # if the pathFragment is in the form of 'array[]', return 'array[i]'
     # else, return null
-    arrayRx = /^(.+)\[]$/
+    arrayRx = /^(.+)\[\d*]$/
     if arrayRx.test @get("fragment")
       [fullName, arrayName] = @get("fragment").match arrayRx
       arrayName + "[#{index}]"
@@ -72,12 +79,16 @@ class BangJsonPath extends Backbone.Collection
     else
       @baseExpression = models[0].get("fragment")
 
-  getQuery: ->
-    @reduce ((pv, cv, index, array)->
+  getQuery: (path)->
+    reducer = ((pv, cv, index, array)->
       if index > 0
         pv += "."
       pv += cv.getQueryFragment()
-    ), ""
+    )
+    if path
+      path.reduce reducer, ""
+    else
+      @reduce reducer, ""
 
   getDisplayedQuery: ->
     @reduce ((pv, cv, index, array)->
@@ -102,18 +113,17 @@ class BangJsonView extends Backbone.View
 
   render: ->
     root  = d3.select(@el)
-    root.append("div").attr("class", "panel-heading").text("Response Navigator")
+    header = root.append("div").attr("class", "panel-heading")
+    header.append("span").attr("class", "panel-title").text("JSON Navigator")
     panelBody = root.append("div").attr("class", "panel-body")
     # For rendering json path
     @breadcrumbUl = panelBody.append("ul").attr("class", "breadcrumb")
-    # For rendering array index selector
-    @indexSelectorDiv = panelBody.append("div").attr("class", "form-inline")
     # For rendering actual value
     @codeBlockPre = panelBody.append("pre").style("display", "none")
-    # For rendering key value pairs
-    @keyValuePairUl = root.append("ul").attr("class", "list-group")
     # For rendering array contents
     @arrayContentTable = root.append("table").attr("class", "table")
+    # For rendering array index selector
+    @indexSelectorDiv = root.append("div").attr("class", "panel-footer").append("div").attr("class", "form-inline")
 
     @listenTo @model, "path:update", @updateNavigator
 
@@ -142,29 +152,49 @@ class BangJsonView extends Backbone.View
           d3.event.preventDefault()
           path.navigateTo i
 
+    type = path.last().getFragmentType()
     if result instanceof Array
-      type = path.last().getFragmentType()
-      switch type
-        when "ArrayRoot"
-          @updateArrayContent result
-        when "ArrayElement"
-          @updateArrayContent result
-        when "ArrayKey"
-          @updateArrayPluckView result, path.last().getArrayKeyName()
+      if type is "ArrayRoot"
+        @updateArrayContent result
+      else if type is "ArrayKey"
+        @updateArrayPluckView result, path.last().getArrayKeyName()
     else if result instanceof Object
       @updateKeyValuePair result
+      if type is "ArrayElement"
+        @updateArrayNavigator path.last().getArrayIndex()
     else
-      @codeBlockPre.style("display", null).text JSON.stringify(result, null, 4)
+      @codeBlockPre.style("display", null).html prettyPrint result
+
+  updateArrayNavigator: ([arrayName, arrayIndex])->
+    pager = @indexSelectorDiv.append("nav").append("ul").attr("class", "pager")
+    query = bangJsonView.model.getQuery bangJsonView.model.slice(0, bangJsonView.model.length - 1).concat(new BangJsonPathFragment({fragment: arrayName + "[]"}))
+    maxLength = eval(query).length
+    console.log query, maxLength, arrayName, arrayIndex
+    if arrayIndex > 0
+      pager.append("li").attr("class", "previous").append("a").attr("href", "#").html("&larr;Previous").on "click", ->
+        bangJsonView.model.navigateToArrayElement arrayIndex - 1
+    else
+      pager.append("li").attr("class", "previous disabled").append("a").attr("href", "#").html("&larr;Previous")
+    pager.append("li").html("#{arrayIndex + 1} / #{maxLength}")
+    if arrayIndex < maxLength - 1
+      pager.append("li").attr("class", "next").append("a").attr("href", "#").html("Next&rarr;").on "click", ->
+        bangJsonView.model.navigateToArrayElement arrayIndex + 1
+    else
+      pager.append("li").attr("class", "next disabled").append("a").attr("href", "#").html("Next&rarr;")
 
   updateKeyValuePair: (result)->
-    @keyValuePairUl.selectAll("li").data(Object.keys(result)).enter()
-    .append("li").attr("class", "list-group-item").each (key)->
+    @arrayContentTable.append("thead").html """
+      <thead><tr>
+        <th>Key</th><th>Value</th>
+      </tr></thead>
+    """
+    @arrayContentTable.append("tfoot").selectAll("tr").data(Object.keys(result)).enter().append("tr").each (key)->
       if not (result[key] instanceof Array or result[key] instanceof Object)
-        d3.select(this).append("strong").text key
-        d3.select(this).append("span").attr("class", "pull-right").text result[key]
+        d3.select(this).append("th").text key
+        d3.select(this).append("td").text(result[key] or "(empty)")
       else
         pathFragment = getPathFragmentForKey(result, key)
-        d3.select(this).append("strong").append("a").attr("href", "#").text(pathFragment.get("fragment"))
+        d3.select(this).append("th").append("a").attr("href", "#").text(pathFragment.get("fragment"))
         .on("click", ->
           d3.event.preventDefault()
           bangJsonView.model.add pathFragment
@@ -172,17 +202,18 @@ class BangJsonView extends Backbone.View
           bangJsonView.model.trigger "path:update"
         )
         if result[key] instanceof Array
-          d3.select(this).append("span").attr("class", "pull-right").text "Array with #{result[key].length} elements"
+          d3.select(this).append("td").text "Array with #{result[key].length} elements"
         else
-          d3.select(this).append("span").attr("class", "pull-right").text "Object with #{_.size(result[key])} key value pairs"
+          d3.select(this).append("td").text "Object with #{_.size(result[key])} key value pairs"
 
   updateArrayContent: (result)->
     if result.length is 0
-      @indexSelectorDiv.append("div").attr("class", "form-group").html "<span>Empty array</span>"
+      @indexSelectorDiv.html "<span>Empty array</span>"
     else
-      @indexSelectorDiv.append("div").attr("class", "form-group").html """
-        <span>Array with #{result.length} elements</span>
+      @indexSelectorDiv.append("div").attr("class", "input-group").html """
+        <span class="input-group-addon">Element No.</span>
         <input type='number' class='form-control' id='arrayIndex' value='0' min='0' max='#{result.length-1}'>
+        <span class="input-group-addon">/ #{result.length}</span>
       """
       @indexSelectorDiv.append("button").attr("type", "submit").attr("class", "btn btn-default").text("Go")
       .on("click", ->
@@ -199,17 +230,21 @@ class BangJsonView extends Backbone.View
 
   updateArrayPluckView: (result, key)->
     console.log "Pluck View"
-    @keyValuePairUl.selectAll("li").data(result).enter()
-    .append("li").attr("class", "list-group-item").each (value, i)->
-      d3.select(this).append("strong").append("a").attr("href", "#").text("Element #{i}").on "click", ->
+    @arrayContentTable.append("thead").html """
+      <thead><tr>
+        <th>Index</th><th>Value</th>
+      </tr></thead>
+    """
+    @arrayContentTable.append("tfoot").selectAll("tr").data(result).enter().append("tr").each (value, i)->
+      d3.select(this).append("th").append("a").attr("href", "#").text("Element #{i}").on "click", ->
         bangJsonView.model.pop()
         bangJsonView.model.navigateToArrayElement i
         bangJsonView.model.push({fragment: key}) if value instanceof Object
         bangJsonView.model.trigger "path:update"
       if value instanceof Object
-        d3.select(this).append("pre").text JSON.stringify(value, null, 4)
+        d3.select(this).append("td").append("pre").html(prettyPrint(value) or "(empty)")
       else
-        d3.select(this).append("span").attr("class", "pull-right").text value
+        d3.select(this).append("td").text(value or "(empty)")
 
   updateArraySchemaTable: (keyStats, array)->
     @arrayContentTable.append("thead").html """
@@ -218,7 +253,7 @@ class BangJsonView extends Backbone.View
       </tr></thead>
     """
     rows = @arrayContentTable.append("tfoot").selectAll("tr").data(keyStats).enter().append("tr")
-    rows.append("td").append("a").attr("href", "#").text(([key])-> key).on "click", ([key])->
+    rows.append("th").append("a").attr("href", "#").text(([key])-> key).on "click", ([key])->
       d3.event.preventDefault()
       bangJsonView.model.push new BangJsonPathFragment {fragment: ":#{key}"}
       bangJsonView.model.trigger "path:update"
@@ -228,7 +263,6 @@ class BangJsonView extends Backbone.View
     @breadcrumbUl.text ""
     @indexSelectorDiv.text ""
     @codeBlockPre.style("display", "none").text ""
-    @keyValuePairUl.text ""
     @arrayContentTable.text ""
 
 render = ->
@@ -244,9 +278,13 @@ render = ->
   }
   bangJsonView.render()
   renderResponse responseRow.append("div").attr("class", "col-lg-12 col-md-12 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-success")
-  $(".panel-heading").css({cursor: "pointer", "word-break": "break-all"}).click (ev)->
-    $(ev.currentTarget).siblings(".panel-body").toggle()
+  $(".panel-heading").css("word-break", "break-all")
+  $(".panel-toggle").css("cursor", "pointer").click (ev)->
+    ev.preventDefault()
+    ev.stopPropagation()
+    $(ev.currentTarget).parent().siblings(".panel-body").toggle()
   root.append("link").attr({rel: "stylesheet", href: chrome.extension.getURL('lib/bootstrap/bootstrap.css'), type: "text/css"})
+  root.append("link").attr({rel: "stylesheet", href: chrome.extension.getURL('lib/bang.css'), type: "text/css"})
   bangJsonView.model.trigger "path:update"
 
 renderHeader = (root)->
@@ -260,11 +298,14 @@ renderHeader = (root)->
   """
 
 renderResponse = (root)->
-  header = root.append("div").attr("class", "panel-heading").html("Response from <code>#{bangUri}</code> stored into <strong>bang</strong>")
-  root.append("div").attr("class", "panel-body").append("pre").text(JSON.stringify(bang, null, 4))
+  header = root.append("div").attr("class", "panel-heading")
+  header.append("span").attr("class", "panel-title").html("Response from <code>#{bangUri}</code> stored into <strong>bang</strong>")
+  header.append("div").attr("class", "panel-toggle pull-right").text("toggle")
+  root.append("div").attr("class", "panel-body").append("pre").html prettyPrint(bang)
 
 renderQuery = (root)->
-  root.append("div").attr("class", "panel-heading").text("Query")
+  header = root.append("div").attr("class", "panel-heading")
+  header.append("span").attr("class", "panel-title").html("Custom JavaScript Query")
   renderQueryForm root.append("div").attr("class", "panel-body")
 
 didRunQuery = ->
@@ -328,6 +369,24 @@ renderQueryForm = (root)->
 
   $("#runQuery").click didRunQuery
   $("#reset").click didReset
+
+replacer = (match, pIndent, pKey, pVal, pEnd)->
+  key = '<span class=json-key>'
+  val = '<span class=json-value>'
+  str = '<span class=json-string>'
+  r = pIndent or ''
+  if pKey
+    r = r + key + pKey.replace(/[": ]/g, '') + '</span>: '
+  if pVal
+    r = r + (if pVal[0] is '"' then str else val) + pVal + '</span>'
+  r + (pEnd or '')
+
+prettyPrint = (obj)->
+  jsonLine = /^( *)("[\w]+": )?("[^"]*"|[\w.+-]*)?([,[{])?$/mg
+  JSON.stringify(obj, null, 3)
+  .replace(/&/g, '&amp;').replace(/\\"/g, '&quot;')
+  .replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(jsonLine, replacer)
 
 load = ->
   try
