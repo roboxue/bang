@@ -2,10 +2,14 @@
 
 Frontend JSON workspace, a Chrome extension
 
-*v0.0.3 Release*
+*v0.0.5 Release*
 Hightlights:
+##### It is a good JSON viewer itself
+![screen shot 2015-01-22 at 14 34 19](https://cloud.githubusercontent.com/assets/4080835/5864017/dff7bdda-a243-11e4-911f-aa7a068b3b8a.png)
 
-##### Custom Javascript expression being applied on JSON response
+But it can do more!
+
+##### Custom Javascript expression cab be applied onto JSON response directly
 Supporting [Underscore](http://underscorejs.org/), [Backbone](http://backbonejs.org), [d3](http://d3js.org), and [jquery](http://jquery.com)
 ![screen shot 2015-01-21 at 00 29 58](https://cloud.githubusercontent.com/assets/4080835/5832066/9d032356-a104-11e4-9243-2a35e7cf3fae.png)
 
