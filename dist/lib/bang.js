@@ -185,7 +185,7 @@
       this.breadcrumbUl = panelBody.append("ul").attr("class", "breadcrumb");
       this.codeBlockPre = panelBody.append("pre");
       $(this.codeBlockPre.node()).hide();
-      this.arrayContentTable = root.append("table").attr("class", "table");
+      this.arrayContentTable = root.append("table").attr("class", "table table-striped");
       this.indexSelectorDiv = root.append("div").attr("class", "panel-footer").append("div").attr("class", "form-inline");
       return this.listenTo(this.model, "path:update", this.updateNavigator);
     };
@@ -269,8 +269,9 @@
     };
 
     BangJsonView.prototype.updateKeyValuePair = function(result) {
-      this.arrayContentTable.append("thead").html("<thead><tr>\n  <th>Key</th><th>Value</th>\n</tr></thead>");
-      return this.arrayContentTable.append("tfoot").selectAll("tr").data(Object.keys(result)).enter().append("tr").each(function(key) {
+      var rows, thead;
+      thead = this.arrayContentTable.append("thead").append("tr");
+      rows = this.arrayContentTable.append("tbody").selectAll("tr").data(Object.keys(result)).enter().append("tr").each(function(key) {
         var pathFragment;
         if (!(result[key] instanceof Array || result[key] instanceof Object)) {
           d3.select(this).append("th").text(key);
@@ -289,6 +290,20 @@
           }
         }
       });
+      thead.append("th").attr("class", "sortable").html("Key<span class='glyphicon glyphicon-sort'></span>").on("click", function() {
+        var icon, iconClass, sortDescription;
+        icon = $(this).find(".glyphicon").removeClass("glyphicon-sort glyphicon-sort-by-alphabet-alt glyphicon-sort-by-alphabet");
+        if (icon.attr("aria-sort") === "ascending") {
+          sortDescription = "descending";
+          iconClass = "glyphicon-sort-by-alphabet-alt";
+        } else {
+          sortDescription = "ascending";
+          iconClass = "glyphicon-sort-by-alphabet";
+        }
+        icon.attr("aria-sort", sortDescription).addClass(iconClass);
+        return rows.sort(d3[sortDescription]);
+      });
+      return thead.append("th").text("Value");
     };
 
     BangJsonView.prototype.updateArrayContent = function(result) {
@@ -319,9 +334,14 @@
     };
 
     BangJsonView.prototype.updateArrayPluckView = function(result, key) {
-      this.arrayContentTable.append("thead").html("<thead><tr>\n  <th>Index</th><th>Value</th>\n</tr></thead>");
-      return this.arrayContentTable.append("tfoot").selectAll("tr").data(result).enter().append("tr").each(function(value, i) {
-        d3.select(this).append("th").append("a").attr("href", "#").text("Element " + i).on("click", function() {
+      var rows, sortHelper, tbody, thead;
+      thead = this.arrayContentTable.append("thead").append("tr");
+      tbody = this.arrayContentTable.append("tbody");
+      rows = tbody.selectAll("tr").data(result).enter().append("tr").each(function(value, i) {
+        var tr;
+        tr = d3.select(this);
+        tr.attr("data-index", i);
+        tr.append("th").append("a").attr("href", "#").text("Element " + i).on("click", function() {
           d3.event.preventDefault();
           bangJsonView.model.pop();
           bangJsonView.model.navigateToArrayElement(i);
@@ -333,17 +353,41 @@
           return bangJsonView.model.trigger("path:update");
         });
         if (value instanceof Object) {
-          return d3.select(this).append("td").append("pre").html(prettyPrint(value) || "(empty)");
+          tr.append("td").append("pre").html(prettyPrint(value) || "(empty)");
+          return tr.attr("data-value", "object");
         } else {
-          return d3.select(this).append("td").text(value || "(empty)");
+          tr.append("td").text(value || "(empty)");
+          return tr.attr("data-value", value || "(empty)");
         }
+      });
+      sortHelper = function(iconSpan, field) {
+        var iconClass, sortDescription;
+        console.log(iconSpan.parents("tr").find(".sortable .glyphicon"));
+        iconSpan.parents("tr").find(".sortable .glyphicon").removeClass("glyphicon-sort glyphicon-sort-by-alphabet-alt glyphicon-sort-by-alphabet");
+        if (iconSpan.attr("aria-sort") === "ascending") {
+          sortDescription = "descending";
+          iconClass = "glyphicon-sort-by-alphabet-alt";
+        } else {
+          sortDescription = "ascending";
+          iconClass = "glyphicon-sort-by-alphabet";
+        }
+        iconSpan.attr("aria-sort", sortDescription).addClass(iconClass);
+        return $(tbody.node()).children("tr").sort(function(a, b) {
+          return d3[sortDescription]($(a).data(field), $(b).data(field));
+        }).detach().appendTo($(tbody.node()));
+      };
+      thead.append("th").attr("class", "sortable").html("Index<span class='glyphicon glyphicon-sort'></span>").on("click", function() {
+        return sortHelper($(this).find(".glyphicon"), "index");
+      });
+      return thead.append("th").attr("class", "sortable").html("Value<span class='glyphicon glyphicon-sort'></span>").on("click", function() {
+        return sortHelper($(this).find(".glyphicon"), "value");
       });
     };
 
     BangJsonView.prototype.updateArraySchemaTable = function(keyStats, array) {
-      var rows;
-      this.arrayContentTable.append("thead").html("<thead><tr>\n  <th>Key</th><th>Times occurred in elements</th>\n</tr></thead>");
-      rows = this.arrayContentTable.append("tfoot").selectAll("tr").data(keyStats).enter().append("tr");
+      var rows, thead;
+      thead = this.arrayContentTable.append("thead").append("tr");
+      rows = this.arrayContentTable.append("tbody").selectAll("tr").data(keyStats).enter().append("tr");
       rows.append("th").append("a").attr("href", "#").text(function(_arg) {
         var key;
         key = _arg[0];
@@ -357,11 +401,27 @@
         }));
         return bangJsonView.model.trigger("path:update");
       });
-      return rows.append("td").text(function(_arg) {
+      rows.append("td").text(function(_arg) {
         var key, times;
         key = _arg[0], times = _arg[1];
         return "" + times + " (" + ((100 * times / array.length).toFixed(0)) + "%)";
       });
+      thead.append("th").attr("class", "sortable").html("Key<span class='glyphicon glyphicon-sort'></span>").on("click", function() {
+        var icon;
+        icon = $(this).find(".glyphicon");
+        if (icon.attr("aria-sort") === "ascending") {
+          icon.attr("aria-sort", "descending").addClass("glyphicon-sort-by-alphabet-alt").removeClass("glyphicon-sort-by-alphabet");
+          return rows.sort(function(a, b) {
+            return d3.descending(a[0], b[0]);
+          });
+        } else {
+          icon.attr("aria-sort", "ascending").addClass("glyphicon-sort-by-alphabet").removeClass("glyphicon-sort-by-alphabet-alt");
+          return rows.sort(function(a, b) {
+            return d3.ascending(a[0], b[0]);
+          });
+        }
+      });
+      return thead.append("th").text("Times occurred in elements");
     };
 
     BangJsonView.prototype.clear = function() {

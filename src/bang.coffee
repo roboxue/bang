@@ -127,7 +127,7 @@ class BangJsonView extends Backbone.View
     @codeBlockPre = panelBody.append("pre")
     $(@codeBlockPre.node()).hide()
     # For rendering array contents
-    @arrayContentTable = root.append("table").attr("class", "table")
+    @arrayContentTable = root.append("table").attr("class", "table table-striped")
     # For rendering array index selector
     @indexSelectorDiv = root.append("div").attr("class", "panel-footer").append("div").attr("class", "form-inline")
 
@@ -192,12 +192,8 @@ class BangJsonView extends Backbone.View
       pager.append("li").attr("class", "next disabled").append("a").attr("href", "#").html("Next&rarr;")
 
   updateKeyValuePair: (result)->
-    @arrayContentTable.append("thead").html """
-      <thead><tr>
-        <th>Key</th><th>Value</th>
-      </tr></thead>
-    """
-    @arrayContentTable.append("tfoot").selectAll("tr").data(Object.keys(result)).enter().append("tr").each (key)->
+    thead = @arrayContentTable.append("thead").append("tr")
+    rows = @arrayContentTable.append("tbody").selectAll("tr").data(Object.keys(result)).enter().append("tr").each (key)->
       if not (result[key] instanceof Array or result[key] instanceof Object)
         d3.select(this).append("th").text key
         d3.select(this).append("td").text(result[key] or "(empty)")
@@ -213,6 +209,18 @@ class BangJsonView extends Backbone.View
           d3.select(this).append("td").text "Array with #{result[key].length} elements"
         else
           d3.select(this).append("td").text "Object with #{_.size(result[key])} key value pairs"
+    thead.append("th").attr("class", "sortable").html("Key<span class='glyphicon glyphicon-sort'></span>")
+    .on "click", ->
+      icon = $(this).find(".glyphicon").removeClass("glyphicon-sort glyphicon-sort-by-alphabet-alt glyphicon-sort-by-alphabet")
+      if icon.attr("aria-sort") is "ascending"
+        sortDescription = "descending"
+        iconClass = "glyphicon-sort-by-alphabet-alt"
+      else
+        sortDescription = "ascending"
+        iconClass = "glyphicon-sort-by-alphabet"
+      icon.attr("aria-sort", sortDescription).addClass(iconClass)
+      rows.sort d3[sortDescription]
+    thead.append("th").text("Value")
 
   updateArrayContent: (result)->
     if result.length is 0
@@ -240,35 +248,63 @@ class BangJsonView extends Backbone.View
         $(@codeBlockPre.node()).show()
 
   updateArrayPluckView: (result, key)->
-    @arrayContentTable.append("thead").html """
-      <thead><tr>
-        <th>Index</th><th>Value</th>
-      </tr></thead>
-    """
-    @arrayContentTable.append("tfoot").selectAll("tr").data(result).enter().append("tr").each (value, i)->
-      d3.select(this).append("th").append("a").attr("href", "#").text("Element #{i}").on "click", ->
+    thead = @arrayContentTable.append("thead").append("tr")
+    tbody = @arrayContentTable.append("tbody")
+    rows = tbody.selectAll("tr").data(result).enter().append("tr").each (value, i)->
+      tr = d3.select(this)
+      tr.attr "data-index", i
+      tr.append("th").append("a").attr("href", "#").text("Element #{i}").on "click", ->
         d3.event.preventDefault()
         bangJsonView.model.pop()
         bangJsonView.model.navigateToArrayElement i
         bangJsonView.model.push({fragment: key}) if value instanceof Object
         bangJsonView.model.trigger "path:update"
       if value instanceof Object
-        d3.select(this).append("td").append("pre").html(prettyPrint(value) or "(empty)")
+        tr.append("td").append("pre").html(prettyPrint(value) or "(empty)")
+        tr.attr("data-value", "object")
       else
-        d3.select(this).append("td").text(value or "(empty)")
+        tr.append("td").text(value or "(empty)")
+        tr.attr("data-value", value or "(empty)")
+    sortHelper = (iconSpan, field)->
+      console.log iconSpan.parents("tr").find(".sortable .glyphicon")
+      iconSpan.parents("tr").find(".sortable .glyphicon").removeClass("glyphicon-sort glyphicon-sort-by-alphabet-alt glyphicon-sort-by-alphabet")
+      if iconSpan.attr("aria-sort") is "ascending"
+        sortDescription = "descending"
+        iconClass = "glyphicon-sort-by-alphabet-alt"
+      else
+        sortDescription = "ascending"
+        iconClass = "glyphicon-sort-by-alphabet"
+      iconSpan.attr("aria-sort", sortDescription).addClass(iconClass)
+      $(tbody.node()).children("tr").sort((a,b)->
+        d3[sortDescription]($(a).data(field), $(b).data(field))
+      ).detach().appendTo($(tbody.node()))
+    thead.append("th").attr("class", "sortable").html("Index<span class='glyphicon glyphicon-sort'></span>")
+    .on "click", ->
+      sortHelper $(this).find(".glyphicon"), "index"
+    thead.append("th").attr("class", "sortable").html("Value<span class='glyphicon glyphicon-sort'></span>")
+    .on "click", ->
+      sortHelper $(this).find(".glyphicon"), "value"
 
   updateArraySchemaTable: (keyStats, array)->
-    @arrayContentTable.append("thead").html """
-      <thead><tr>
-        <th>Key</th><th>Times occurred in elements</th>
-      </tr></thead>
-    """
-    rows = @arrayContentTable.append("tfoot").selectAll("tr").data(keyStats).enter().append("tr")
+    thead = @arrayContentTable.append("thead").append("tr")
+    rows = @arrayContentTable.append("tbody").selectAll("tr").data(keyStats).enter().append("tr")
     rows.append("th").append("a").attr("href", "#").text(([key])-> key).on "click", ([key])->
       d3.event.preventDefault()
       bangJsonView.model.push new BangJsonPathFragment {fragment: ":#{key}"}
       bangJsonView.model.trigger "path:update"
     rows.append("td").text(([key, times])-> "#{times} (#{(100 * times / array.length).toFixed(0)}%)")
+    thead.append("th").attr("class", "sortable").html("Key<span class='glyphicon glyphicon-sort'></span>")
+    .on "click", ->
+      icon = $(this).find(".glyphicon")
+      if icon.attr("aria-sort") is "ascending"
+        icon.attr("aria-sort", "descending").addClass("glyphicon-sort-by-alphabet-alt").removeClass("glyphicon-sort-by-alphabet")
+        rows.sort (a, b)->
+          d3.descending a[0], b[0]
+      else
+        icon.attr("aria-sort", "ascending").addClass("glyphicon-sort-by-alphabet").removeClass("glyphicon-sort-by-alphabet-alt")
+        rows.sort (a, b)->
+          d3.ascending a[0], b[0]
+    thead.append("th").text("Times occurred in elements")
 
   clear: ->
     @breadcrumbUl.text ""
