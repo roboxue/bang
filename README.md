@@ -6,7 +6,7 @@ Frontend JSON workspace, a Chrome extension
 Hightlights:
 
 ##### Custom Javascript expression being applied on JSON response
-Supporting [Underscore](http://underscorejs.org/), [Backbone](backbonejs.org), [d3](d3js.org), and [jquery](jquery.com)
+Supporting [Underscore](http://underscorejs.org/), [Backbone](http://backbonejs.org), [d3](http://d3js.org), and [jquery](http://jquery.com)
 ![screen shot 2015-01-21 at 00 29 58](https://cloud.githubusercontent.com/assets/4080835/5832066/9d032356-a104-11e4-9243-2a35e7cf3fae.png)
 
 ##### Check JSON array's scheme on the fly
