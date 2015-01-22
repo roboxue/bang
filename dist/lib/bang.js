@@ -683,6 +683,7 @@
       ex = _error;
       console.log("Document not valid json, bang will not work: " + ex);
       console.log("Bang can't work on HTML and XML pages");
+      return;
     }
     return render();
   };
