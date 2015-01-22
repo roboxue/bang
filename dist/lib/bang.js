@@ -499,34 +499,51 @@
       }
     });
     return $("#rawResponse [data-index][data-folded]").click(function(ev) {
-      var childSiblings, currentIndex, node;
+      var childSiblings, comment, currentIndex, elements, elementsCount, next, node;
       node = $(ev.currentTarget);
       currentIndex = parseInt(node.data("index"));
       childSiblings = node.nextUntil("[data-index=" + currentIndex + "]").filter(function() {
         return $(this).data("index") > currentIndex;
       });
-      if (childSiblings) {
-        if (node.data("folded") === false) {
-          node.data("folded", true);
-          node.find(".glyphicon").removeClass("glyphicon-minus").addClass("glyphicon-plus").text("");
-          childSiblings.hide();
-          return childSiblings.each(function() {
-            var foldedTimes;
-            foldedTimes = $(this).data("folds") ? parseInt($(this).data("folds")) + 1 : 1;
-            return $(this).data("folds", foldedTimes);
-          });
+      if (!(childSiblings.length > 0)) {
+        return;
+      }
+      next = node.nextAll("[data-index=" + currentIndex + "]").first();
+      if (node.data("folded") === false) {
+        node.data("folded", true);
+        node.find(".glyphicon").removeClass("glyphicon-minus").addClass("glyphicon-plus").text("");
+        comment = next.text().trim();
+        if (/^]/.test(comment)) {
+          elements = childSiblings.filter("[data-index=" + (currentIndex + 1) + "]");
+          elementsCount = elements.length - elements.filter(function() {
+            return $(".glyphicon-minus, .glyphicon-plus", this).length > 0;
+          }).length;
+          comment = "" + elementsCount + " elements" + comment;
         } else {
-          node.data("folded", false);
-          node.find(".glyphicon").removeClass("glyphicon-plus").addClass("glyphicon-minus").text("");
-          return childSiblings.each(function() {
-            var foldedTimes;
-            foldedTimes = $(this).data("folds") ? parseInt($(this).data("folds")) - 1 : 0;
-            $(this).data("folds", foldedTimes);
-            if (foldedTimes === 0) {
-              return $(this).show();
-            }
-          });
+          comment = "..." + comment;
         }
+        node.find(".json-comment").text(comment);
+        next.hide();
+        childSiblings.hide();
+        return childSiblings.each(function() {
+          var foldedTimes;
+          foldedTimes = $(this).data("folds") ? parseInt($(this).data("folds")) + 1 : 1;
+          return $(this).data("folds", foldedTimes);
+        });
+      } else {
+        node.data("folded", false);
+        node.find(".json-comment").text("");
+        node.find(".glyphicon").removeClass("glyphicon-plus").addClass("glyphicon-minus").text("");
+        node.find(".json-comment").text("");
+        next.show();
+        return childSiblings.each(function() {
+          var foldedTimes;
+          foldedTimes = $(this).data("folds") ? parseInt($(this).data("folds")) - 1 : 0;
+          $(this).data("folds", foldedTimes);
+          if (foldedTimes === 0) {
+            return $(this).show();
+          }
+        });
       }
     });
   };
@@ -633,7 +650,8 @@
     if (pVal) {
       r = r + (pVal[0] === '"' ? str : val) + pVal + '</span>';
     }
-    return "<p data-folded='false' data-index='" + index + "' class='json-row'><span class='glyphicon col-sm-1'></span><span class='col-sm-11 json-content'>" + (r + (pEnd || '')) + "</span></p>";
+    r += pEnd || '';
+    return "<p data-folded='false' data-index='" + index + "' class='json-row row'><span class='glyphicon col-sm-1'></span><span class='col-sm-11 json-content'>" + r + "<span class='json-comment'></span></span></p>";
   };
 
   prettyPrint = function(obj) {

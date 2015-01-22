@@ -371,21 +371,36 @@ renderResponse = (root)->
     currentIndex = parseInt node.data("index")
     childSiblings = node.nextUntil("[data-index=#{currentIndex}]").filter ->
       $(this).data("index") > currentIndex
-    if childSiblings
-      if node.data("folded") is false
-        node.data("folded", true)
-        node.find(".glyphicon").removeClass("glyphicon-minus").addClass("glyphicon-plus").text("")
-        childSiblings.hide()
-        childSiblings.each ->
-          foldedTimes = if $(this).data("folds") then parseInt($(this).data("folds")) + 1 else 1
-          $(this).data("folds", foldedTimes)
+    return unless childSiblings.length > 0
+    next = node.nextAll("[data-index=#{currentIndex}]").first()
+    if node.data("folded") is false
+      node.data("folded", true)
+      node.find(".glyphicon").removeClass("glyphicon-minus").addClass("glyphicon-plus").text("")
+      comment = next.text().trim()
+      if /^]/.test comment
+        # Display array's elements count if the folded row is an array
+        elements = childSiblings.filter("[data-index=#{currentIndex + 1}]")
+        # If this array contains n object, it will have n extra lines that matches index=currentIndex
+        elementsCount = elements.length - elements.filter(-> $(".glyphicon-minus, .glyphicon-plus", this).length > 0).length
+        comment = "#{elementsCount} elements#{comment}"
       else
-        node.data("folded", false)
-        node.find(".glyphicon").removeClass("glyphicon-plus").addClass("glyphicon-minus").text("")
-        childSiblings.each ->
-          foldedTimes = if $(this).data("folds") then parseInt($(this).data("folds")) - 1 else 0
-          $(this).data("folds", foldedTimes)
-          $(this).show() if foldedTimes is 0
+        comment = "...#{comment}"
+      node.find(".json-comment").text(comment)
+      next.hide()
+      childSiblings.hide()
+      childSiblings.each ->
+        foldedTimes = if $(this).data("folds") then parseInt($(this).data("folds")) + 1 else 1
+        $(this).data("folds", foldedTimes)
+    else
+      node.data("folded", false)
+      node.find(".json-comment").text("")
+      node.find(".glyphicon").removeClass("glyphicon-plus").addClass("glyphicon-minus").text("")
+      node.find(".json-comment").text("")
+      next.show()
+      childSiblings.each ->
+        foldedTimes = if $(this).data("folds") then parseInt($(this).data("folds")) - 1 else 0
+        $(this).data("folds", foldedTimes)
+        $(this).show() if foldedTimes is 0
 
 renderQuery = (root)->
   header = root.append("div").attr("class", "panel-heading")
@@ -468,7 +483,8 @@ replacer = (match, pIndent, pKey, pVal, pEnd)->
     r = r + key + pKey.replace(/[": ]/g, '') + '</span>: '
   if pVal
     r = r + (if pVal[0] is '"' then str else val) + pVal + '</span>'
-  "<p data-folded='false' data-index='#{index}' class='json-row'><span class='glyphicon col-sm-1'></span><span class='col-sm-11 json-content'>#{r + (pEnd or '')}</span></p>"
+  r += pEnd or ''
+  "<p data-folded='false' data-index='#{index}' class='json-row row'><span class='glyphicon col-sm-1'></span><span class='col-sm-11 json-content'>#{r}<span class='json-comment'></span></span></p>"
 
 prettyPrint = (obj)->
   jsonLine = /^( *)("[\w]+": )?("[^"]*"|[\w.+-]*)?([,\[\{}\]]*)?$/mg
