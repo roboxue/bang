@@ -388,19 +388,24 @@ renderResponse = (root)->
       node.find(".json-comment").text(comment)
       next.hide()
       childSiblings.hide()
+      increaseFoldedTimes = (row)->
+        foldedTimes = if row.data("folds") then parseInt(row.data("folds")) + 1 else 1
+        row.data("folds", foldedTimes)
+      increaseFoldedTimes next
       childSiblings.each ->
-        foldedTimes = if $(this).data("folds") then parseInt($(this).data("folds")) + 1 else 1
-        $(this).data("folds", foldedTimes)
+        increaseFoldedTimes $(this)
     else
       node.data("folded", false)
       node.find(".json-comment").text("")
       node.find(".glyphicon").removeClass("glyphicon-plus").addClass("glyphicon-minus").text("")
       node.find(".json-comment").text("")
-      next.show()
+      decreaseFoldedTimes = (row)->
+        foldedTimes = if row.data("folds") then parseInt(row.data("folds")) - 1 else 0
+        row.data("folds", foldedTimes)
+        row.show() if foldedTimes is 0
+      decreaseFoldedTimes next
       childSiblings.each ->
-        foldedTimes = if $(this).data("folds") then parseInt($(this).data("folds")) - 1 else 0
-        $(this).data("folds", foldedTimes)
-        $(this).show() if foldedTimes is 0
+        decreaseFoldedTimes $(this)
 
 renderQuery = (root)->
   header = root.append("div").attr("class", "panel-heading")

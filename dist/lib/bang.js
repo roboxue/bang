@@ -499,7 +499,7 @@
       }
     });
     return $("#rawResponse [data-index][data-folded]").click(function(ev) {
-      var childSiblings, comment, currentIndex, elements, elementsCount, next, node;
+      var childSiblings, comment, currentIndex, decreaseFoldedTimes, elements, elementsCount, increaseFoldedTimes, next, node;
       node = $(ev.currentTarget);
       currentIndex = parseInt(node.data("index"));
       childSiblings = node.nextUntil("[data-index=" + currentIndex + "]").filter(function() {
@@ -525,24 +525,31 @@
         node.find(".json-comment").text(comment);
         next.hide();
         childSiblings.hide();
-        return childSiblings.each(function() {
+        increaseFoldedTimes = function(row) {
           var foldedTimes;
-          foldedTimes = $(this).data("folds") ? parseInt($(this).data("folds")) + 1 : 1;
-          return $(this).data("folds", foldedTimes);
+          foldedTimes = row.data("folds") ? parseInt(row.data("folds")) + 1 : 1;
+          return row.data("folds", foldedTimes);
+        };
+        increaseFoldedTimes(next);
+        return childSiblings.each(function() {
+          return increaseFoldedTimes($(this));
         });
       } else {
         node.data("folded", false);
         node.find(".json-comment").text("");
         node.find(".glyphicon").removeClass("glyphicon-plus").addClass("glyphicon-minus").text("");
         node.find(".json-comment").text("");
-        next.show();
-        return childSiblings.each(function() {
+        decreaseFoldedTimes = function(row) {
           var foldedTimes;
-          foldedTimes = $(this).data("folds") ? parseInt($(this).data("folds")) - 1 : 0;
-          $(this).data("folds", foldedTimes);
+          foldedTimes = row.data("folds") ? parseInt(row.data("folds")) - 1 : 0;
+          row.data("folds", foldedTimes);
           if (foldedTimes === 0) {
-            return $(this).show();
+            return row.show();
           }
+        };
+        decreaseFoldedTimes(next);
+        return childSiblings.each(function() {
+          return decreaseFoldedTimes($(this));
         });
       }
     });
