@@ -2,7 +2,7 @@
 
 Frontend JSON workspace, a Chrome extension
 
-*v0.1.0 Release*
+*v0.1.1 Release*
 
 Hightlights:
 
@@ -23,12 +23,17 @@ Supporting [Underscore](http://underscorejs.org/), [Backbone](http://backbonejs.
 ##### Browse easily within an array
 ![screen shot 2015-01-21 at 00 17 52](https://cloud.githubusercontent.com/assets/4080835/5832012/4a78ad5a-a103-11e4-96ad-8a509b01e2eb.png)
 
+##### Url editing utils for quick turnaround
+![screen shot 2015-01-26 at 13 02 30](https://cloud.githubusercontent.com/assets/4080835/5906227/97593b06-a55b-11e4-8a9b-645ee01a7e1a.png)
+
 (Not released yet, in dev mode)
 
 # How to build
+> I use Grunt as the task managing tool
+
 1. Make sure you have node.js and npm installed
 2. `npm install`
-3. `grunt`
+3. `npm run build`
 
 # How to load into Chrome
 
