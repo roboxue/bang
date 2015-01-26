@@ -142,8 +142,8 @@ class BangJsonView extends Backbone.View
     $("#query").val path.getDisplayedQuery() unless option and option.silent
     return @breadcrumbUl.text JSON.stringify(error, null, 4) if error
     @breadcrumbUl.selectAll("li").data(@model.models).enter().append("li").each (pathFragment, i)->
-      if i is 0 and pathFragment.getDisplayName() is "bang"
-        return d3.select(this).append("strong").text(pathFragment.getDisplayName())
+#      if i is 0
+#        return d3.select(this).append("strong").text(pathFragment.getDisplayName())
       if i is path.length - 1
         # return a link to the array base for an array item at the last position
         if pathFragment.getBaseFragment()
@@ -169,7 +169,7 @@ class BangJsonView extends Backbone.View
     else if result instanceof Object
       @updateKeyValuePair result
     else
-      @codeBlockPre.html(prettyPrint(result))
+      @codeBlockPre.html(prettyPrint(result, true))
       $(@codeBlockPre.node()).show()
     if type is "ArrayElement"
       @updateArrayNavigator path.last().getArrayIndex()
@@ -245,7 +245,7 @@ class BangJsonView extends Backbone.View
       if _.size(keyStats) > 0
         @updateArraySchemaTable _.pairs(keyStats), result
       else
-        @codeBlockPre.html(prettyPrint(result))
+        @codeBlockPre.html(prettyPrint(result, true))
         $(@codeBlockPre.node()).show()
 
   updateArrayPluckView: (result, key)->
@@ -261,7 +261,7 @@ class BangJsonView extends Backbone.View
         bangJsonView.model.push({fragment: key}) if value instanceof Object
         bangJsonView.model.trigger "path:update"
       if value instanceof Object
-        tr.append("td").append("pre").html(prettyPrint(value) or "(empty)")
+        tr.append("td").append("pre").html(prettyPrint(value, true) or "(empty)")
         tr.attr("data-value", "object")
       else
         tr.append("td").text(value or "(empty)")
@@ -321,7 +321,7 @@ render = ->
   queryRow = root.append("div").attr("class", "row")
   responseRow = root.append("div").attr("class", "row")
   bangJsonView = new BangJsonView {
-    model: new BangJsonPath [new BangJsonPathFragment({fragment: "bang"})]
+    model: new BangJsonPath [new BangJsonPathFragment({fragment: if bang instanceof Array then "bang[]" else "bang"})], {baseExpression: "bang"}
     el: queryRow.append("div").attr("class", "col-lg-6 col-md-6 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-default").attr("id", "navigatorPanel").node()
   }
   bangJsonView.render()
@@ -334,6 +334,8 @@ render = ->
   root.append("link").attr({rel: "stylesheet", href: chrome.extension.getURL('lib/bootstrap/bootstrap.css'), type: "text/css"})
   root.append("link").attr({rel: "stylesheet", href: chrome.extension.getURL('lib/bang.css'), type: "text/css"})
   bangJsonView.model.trigger "path:update"
+  $("#runQuery").click didRunQuery
+  $("#reset, .bang").click didReset
 
 renderHeader = (root)->
   root.html """
@@ -550,7 +552,7 @@ didRunQuery = ->
 didReset = ->
   $("#query").val "bang"
   bangJsonView.model.baseExpression = "bang"
-  bangJsonView.model.set {fragment: "bang"}
+  bangJsonView.model.set {fragment: if bang instanceof Array then "bang[]" else "bang"}
   bangJsonView.model.trigger "path:update"
 
 runQuery = (query)->
@@ -590,9 +592,6 @@ renderQueryForm = (root)->
 </div>
 """)
 
-  $("#runQuery").click didRunQuery
-  $("#reset, .bang").click didReset
-
 stringifyPadingSize = 4
 
 replacer = (match, pIndent, pKey, pVal, pEnd)->
@@ -609,12 +608,25 @@ replacer = (match, pIndent, pKey, pVal, pEnd)->
   r += pEnd or ''
   "<p data-folded='false' data-index='#{index}' class='json-row row'><span class='glyphicon col-sm-1'></span><span class='col-sm-11 json-content'>#{r}<span class='json-comment'></span></span></p>"
 
-prettyPrint = (obj)->
+replacerSimplified = (match, pIndent, pKey, pVal, pEnd)->
+  key = '<span class=json-key>'
+  val = '<span class=json-value>'
+  str = '<span class=json-string>'
+  r = pIndent or ''
+  r = r.replace(/\s/g, '&nbsp;')
+  if pKey
+    r = r + key + pKey.replace(/[": ]/g, '') + '</span>: '
+  if pVal
+    r = r + (if pVal[0] is '"' then str else val) + pVal + '</span>'
+  r += pEnd or ''
+  r
+
+prettyPrint = (obj, simplifiedVersion)->
   jsonLine = /^( *)("[\w]+": )?("[^"]*"|[\w.+-]*)?([,\[\{}\]]*)?$/mg
   JSON.stringify(obj, null, stringifyPadingSize)
   .replace(/&/g, '&amp;').replace(/\\"/g, '&quot;')
   .replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  .replace(jsonLine, replacer)
+  .replace(jsonLine, if simplifiedVersion then replacerSimplified else replacer)
 
 load = ->
   try

@@ -1,5 +1,5 @@
 (function() {
-  var BangJsonPath, BangJsonPathFragment, BangJsonView, bang, bangJsonView, bangUri, didReset, didRunQuery, getPathFragmentForKey, load, originBangUri, originBody, prettyPrint, queryResult, render, renderHeader, renderQuery, renderQueryForm, renderQueryParameters, renderResponse, renderUri, replacer, runQuery, stringifyPadingSize, updateUri,
+  var BangJsonPath, BangJsonPathFragment, BangJsonView, bang, bangJsonView, bangUri, didReset, didRunQuery, getPathFragmentForKey, load, originBangUri, originBody, prettyPrint, queryResult, render, renderHeader, renderQuery, renderQueryForm, renderQueryParameters, renderResponse, renderUri, replacer, replacerSimplified, runQuery, stringifyPadingSize, updateUri,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -205,9 +205,6 @@
         return this.breadcrumbUl.text(JSON.stringify(error, null, 4));
       }
       this.breadcrumbUl.selectAll("li").data(this.model.models).enter().append("li").each(function(pathFragment, i) {
-        if (i === 0 && pathFragment.getDisplayName() === "bang") {
-          return d3.select(this).append("strong").text(pathFragment.getDisplayName());
-        }
         if (i === path.length - 1) {
           if (pathFragment.getBaseFragment()) {
             return d3.select(this).append("a").attr("href", "#").text(pathFragment.getDisplayName()).on("click", function() {
@@ -235,7 +232,7 @@
       } else if (result instanceof Object) {
         this.updateKeyValuePair(result);
       } else {
-        this.codeBlockPre.html(prettyPrint(result));
+        this.codeBlockPre.html(prettyPrint(result, true));
         $(this.codeBlockPre.node()).show();
       }
       if (type === "ArrayElement") {
@@ -329,7 +326,7 @@
         if (_.size(keyStats) > 0) {
           return this.updateArraySchemaTable(_.pairs(keyStats), result);
         } else {
-          this.codeBlockPre.html(prettyPrint(result));
+          this.codeBlockPre.html(prettyPrint(result, true));
           return $(this.codeBlockPre.node()).show();
         }
       }
@@ -355,7 +352,7 @@
           return bangJsonView.model.trigger("path:update");
         });
         if (value instanceof Object) {
-          tr.append("td").append("pre").html(prettyPrint(value) || "(empty)");
+          tr.append("td").append("pre").html(prettyPrint(value, true) || "(empty)");
           return tr.attr("data-value", "object");
         } else {
           tr.append("td").text(value || "(empty)");
@@ -448,9 +445,11 @@
     bangJsonView = new BangJsonView({
       model: new BangJsonPath([
         new BangJsonPathFragment({
-          fragment: "bang"
+          fragment: bang instanceof Array ? "bang[]" : "bang"
         })
-      ]),
+      ], {
+        baseExpression: "bang"
+      }),
       el: queryRow.append("div").attr("class", "col-lg-6 col-md-6 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-default").attr("id", "navigatorPanel").node()
     });
     bangJsonView.render();
@@ -471,7 +470,9 @@
       href: chrome.extension.getURL('lib/bang.css'),
       type: "text/css"
     });
-    return bangJsonView.model.trigger("path:update");
+    bangJsonView.model.trigger("path:update");
+    $("#runQuery").click(didRunQuery);
+    return $("#reset, .bang").click(didReset);
   };
 
   renderHeader = function(root) {
@@ -692,7 +693,7 @@
     $("#query").val("bang");
     bangJsonView.model.baseExpression = "bang";
     bangJsonView.model.set({
-      fragment: "bang"
+      fragment: bang instanceof Array ? "bang[]" : "bang"
     });
     return bangJsonView.model.trigger("path:update");
   };
@@ -737,9 +738,7 @@
   };
 
   renderQueryForm = function(root) {
-    root.html("<div class=\"form-horizontal\">\n  <div class=\"form-group\">\n    <label for=\"query\" class=\"col-sm-2 control-label\">Query</label>\n    <div class=\"col-sm-10\">\n      <textarea class=\"form-control\" id=\"query\" placeholder=\"Any Javascript Expression!\"></textarea>\n    </div>\n  </div>\n  <div class=\"form-group\">\n    <div class=\"col-sm-offset-2 col-sm-10\">\n      <button type=\"submit\" class=\"btn btn-default\" id=\"runQuery\">Run it!</button>\n      <button type=\"reset\" class=\"btn btn-default\" id=\"reset\">Reset</button>\n    </div>\n  </div>\n</div>");
-    $("#runQuery").click(didRunQuery);
-    return $("#reset, .bang").click(didReset);
+    return root.html("<div class=\"form-horizontal\">\n  <div class=\"form-group\">\n    <label for=\"query\" class=\"col-sm-2 control-label\">Query</label>\n    <div class=\"col-sm-10\">\n      <textarea class=\"form-control\" id=\"query\" placeholder=\"Any Javascript Expression!\"></textarea>\n    </div>\n  </div>\n  <div class=\"form-group\">\n    <div class=\"col-sm-offset-2 col-sm-10\">\n      <button type=\"submit\" class=\"btn btn-default\" id=\"runQuery\">Run it!</button>\n      <button type=\"reset\" class=\"btn btn-default\" id=\"reset\">Reset</button>\n    </div>\n  </div>\n</div>");
   };
 
   stringifyPadingSize = 4;
@@ -762,10 +761,27 @@
     return "<p data-folded='false' data-index='" + index + "' class='json-row row'><span class='glyphicon col-sm-1'></span><span class='col-sm-11 json-content'>" + r + "<span class='json-comment'></span></span></p>";
   };
 
-  prettyPrint = function(obj) {
+  replacerSimplified = function(match, pIndent, pKey, pVal, pEnd) {
+    var key, r, str, val;
+    key = '<span class=json-key>';
+    val = '<span class=json-value>';
+    str = '<span class=json-string>';
+    r = pIndent || '';
+    r = r.replace(/\s/g, '&nbsp;');
+    if (pKey) {
+      r = r + key + pKey.replace(/[": ]/g, '') + '</span>: ';
+    }
+    if (pVal) {
+      r = r + (pVal[0] === '"' ? str : val) + pVal + '</span>';
+    }
+    r += pEnd || '';
+    return r;
+  };
+
+  prettyPrint = function(obj, simplifiedVersion) {
     var jsonLine;
     jsonLine = /^( *)("[\w]+": )?("[^"]*"|[\w.+-]*)?([,\[\{}\]]*)?$/mg;
-    return JSON.stringify(obj, null, stringifyPadingSize).replace(/&/g, '&amp;').replace(/\\"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(jsonLine, replacer);
+    return JSON.stringify(obj, null, stringifyPadingSize).replace(/&/g, '&amp;').replace(/\\"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(jsonLine, simplifiedVersion ? replacerSimplified : replacer);
   };
 
   load = function() {
