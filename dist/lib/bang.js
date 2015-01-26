@@ -1,11 +1,13 @@
 (function() {
-  var BangJsonPath, BangJsonPathFragment, BangJsonView, bang, bangJsonView, bangUri, didReset, didRunQuery, getPathFragmentForKey, load, originBody, prettyPrint, queryResult, render, renderHeader, renderQuery, renderQueryForm, renderResponse, replacer, runQuery, stringifyPadingSize,
+  var BangJsonPath, BangJsonPathFragment, BangJsonView, bang, bangJsonView, bangUri, didReset, didRunQuery, getPathFragmentForKey, load, originBangUri, originBody, prettyPrint, queryResult, render, renderHeader, renderQuery, renderQueryForm, renderQueryParameters, renderResponse, renderUri, replacer, runQuery, stringifyPadingSize, updateUri,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   bang = null;
 
   bangUri = null;
+
+  originBangUri = null;
 
   queryResult = null;
 
@@ -457,7 +459,7 @@
     $(".panel-heading");
     $(".panel-toggle").click(function(ev) {
       ev.preventDefault();
-      return $(ev.currentTarget).parent().siblings(".panel-body").toggle();
+      return $(ev.currentTarget).parent().siblings(".panel-body, .panel-footer").toggle();
     });
     root.append("link").attr({
       rel: "stylesheet",
@@ -483,8 +485,9 @@
   renderResponse = function(root) {
     var header;
     header = root.append("div").attr("class", "panel-heading");
-    header.append("span").attr("class", "panel-title").html("Response from <code>" + bangUri + "</code> stored into <code class='bang'>bang</code>");
-    header.append("div").attr("class", "panel-toggle pull-right").text("toggle");
+    header.append("span").attr("class", "panel-title").html("Response from <code>" + (bangUri.href()) + "</code> stored into <code class='bang'>bang</code>");
+    header.append("div").attr("class", "panel-toggle pull-right").text("toggle details");
+    renderUri(root.append("div").attr("class", "form-horizontal panel-footer").attr("id", "uri"));
     root.append("div").attr("class", "panel-body").append("div").attr("id", "rawResponse").html(prettyPrint(bang));
     $("#rawResponse [data-index][data-folded]").each(function() {
       var childSiblings, currentIndex, node;
@@ -509,7 +512,24 @@
         return;
       }
       next = node.nextAll("[data-index=" + currentIndex + "]").first();
-      if (node.data("folded") === false) {
+      if (node.data("folded")) {
+        node.data("folded", false);
+        node.find(".json-comment").text("");
+        node.find(".glyphicon").removeClass("glyphicon-plus").addClass("glyphicon-minus").text("");
+        node.find(".json-comment").text("");
+        decreaseFoldedTimes = function(row) {
+          var foldedTimes;
+          foldedTimes = row.data("folds") ? parseInt(row.data("folds")) - 1 : 0;
+          row.data("folds", foldedTimes);
+          if (foldedTimes === 0) {
+            return row.show();
+          }
+        };
+        decreaseFoldedTimes(next);
+        return childSiblings.each(function() {
+          return decreaseFoldedTimes($(this));
+        });
+      } else {
         node.data("folded", true);
         node.find(".glyphicon").removeClass("glyphicon-minus").addClass("glyphicon-plus").text("");
         comment = next.text().trim();
@@ -534,25 +554,106 @@
         return childSiblings.each(function() {
           return increaseFoldedTimes($(this));
         });
-      } else {
-        node.data("folded", false);
-        node.find(".json-comment").text("");
-        node.find(".glyphicon").removeClass("glyphicon-plus").addClass("glyphicon-minus").text("");
-        node.find(".json-comment").text("");
-        decreaseFoldedTimes = function(row) {
-          var foldedTimes;
-          foldedTimes = row.data("folds") ? parseInt(row.data("folds")) - 1 : 0;
-          row.data("folds", foldedTimes);
-          if (foldedTimes === 0) {
-            return row.show();
-          }
-        };
-        decreaseFoldedTimes(next);
-        return childSiblings.each(function() {
-          return decreaseFoldedTimes($(this));
-        });
       }
     });
+  };
+
+  renderUri = function(root) {
+    root.html("<div class=\"form-group\" data-key=\"protocol\">\n  <label class=\"control-label col-sm-2\">Protocol</label>\n  <div class=\"col-sm-10\"><p class=\"form-control-static\">" + (bangUri.protocol()) + "</p></div>\n</div>\n<div class=\"form-group\" data-key=\"hostname\">\n  <label class=\"control-label col-sm-2\">Hostname</label>\n  <div class=\"col-sm-10\">\n    <input type=\"text\" class=\"form-control\" id=\"uriHstname\" placeholder=\"" + (bangUri.hostname() || 'www.myhost.com') + "\">\n    <span class=\"glyphicon glyphicon-warning-sign form-control-feedback\" aria-hidden=\"true\" style=\"display: none\"></span>\n  </div>\n</div>\n<div class=\"form-group\" data-key=\"port\">\n  <label class=\"control-label col-sm-2\">Port</label>\n  <div class=\"col-sm-10\"><p class=\"form-control-static\">" + (bangUri.port() || 80) + "</p></div>\n</div>\n<div class=\"form-group has-feedback\" data-key=\"path\">\n  <label for=\"uriPath\" class=\"col-sm-2 control-label\">Path\n  </label>\n  <div class=\"col-sm-10\">\n    <input type=\"text\" class=\"form-control\" id=\"uriPath\" placeholder=\"" + (bangUri.path() || '/path') + "\">\n    <span class=\"glyphicon glyphicon-warning-sign form-control-feedback\" aria-hidden=\"true\" style=\"display: none\"></span>\n  </div>\n</div>\n<div class=\"form-group has-feedback\" data-key=\"hash\">\n  <label for=\"uriHash\" class=\"col-sm-2 control-label\">Hash\n  </label>\n  <div class=\"col-sm-10\">\n    <input type=\"text\" class=\"form-control\" id=\"uriHash\" placeholder=\"" + (bangUri.hash() || '#hash') + "\" value=\"" + (bangUri.hash()) + "\">\n    <span class=\"glyphicon glyphicon-warning-sign form-control-feedback\" aria-hidden=\"true\" style=\"display: none\"></span>\n  </div>\n</div>\n<div class=\"form-group\">\n  <label class=\"control-label col-sm-2\">Query String</label>\n  <div class=\"col-sm-10\">\n    <pre class=\"form-control-static\" id=\"search\"></pre>\n  </div>\n</div>\n<div id=\"queryParameters\">\n</div>\n<div class=\"form-group\" id=\"addNewQueryParameter\">\n  <div class=\"col-sm-offset-2 col-sm-2\">\n    <button class=\"btn btn-default control-label glyphicon glyphicon-plus-sign\">Add</button>\n  </div>\n  <div class=\"col-sm-4\">\n    <input type=\"text\" class=\"form-control\" id=\"newKey\" placeholder=\"new key\">\n  </div>\n  <div class=\"col-sm-4\">\n    <input type=\"text\" class=\"form-control\" id=\"newValue\" placeholder=\"new value\">\n  </div>\n</div>\n<div class=\"form-group\">\n  <div class=\"col-sm-offset-2 col=sm-10\">\n    <a id=\"refreshLink\">Refresh</a>\n  </div>\n</div>");
+    renderQueryParameters();
+    $("#uri .form-group[data-key] input").change(function(ev) {
+      var defaultValue, key, value, valueToSet;
+      key = $(ev.currentTarget).parent().parent().data("key");
+      value = $(ev.currentTarget).val();
+      defaultValue = $(ev.currentTarget).attr("placeholder");
+      valueToSet = value && value !== defaultValue ? value : defaultValue;
+      bangUri[key](valueToSet);
+      return updateUri($(ev.currentTarget), value && value !== defaultValue);
+    });
+    $("#search").click(function() {
+      return $("#queryParameters").toggle();
+    });
+    return $("#addNewQueryParameter button").click(function() {
+      var newKey, newValue;
+      newKey = $("#newKey").val();
+      if (newKey) {
+        $("#newKey").parent().removeClass("has-error");
+      } else {
+        return $("#newKey").parent().addClass("has-error");
+      }
+      newValue = $("#newValue").val();
+      if (newValue) {
+        bangUri.addSearch(newKey, newValue);
+      } else {
+        bangUri.addSearch(newKey);
+      }
+      renderQueryParameters();
+      $("#newKey").val("");
+      return $("#newValue").val("");
+    });
+  };
+
+  renderQueryParameters = function() {
+    var parameterDiv;
+    $("#refreshLink").attr("href", bangUri.href());
+    $("#search").text(bangUri.search() || "(none)");
+    parameterDiv = d3.select("#queryParameters").text("").selectAll("div.form-group").data(_.pairs(bangUri.search(true))).enter().append("div").attr("class", "form-group has-feedback queryParameter").attr("data-key", function(_arg) {
+      var key;
+      key = _arg[0];
+      return key;
+    });
+    parameterDiv.append("label").attr("class", "control-label col-sm-offset-2 col-sm-2").attr("for", function(_arg) {
+      var key;
+      key = _arg[0];
+      return "query" + key;
+    }).text(function(_arg) {
+      var key;
+      key = _arg[0];
+      return key;
+    });
+    parameterDiv.append("div").attr("class", "col-sm-7").call(function(inputDiv) {
+      inputDiv.append("span").attr("class", "glyphicon glyphicon-warning-sign form-control-feedback").attr("aria-hidden", "true").style("display", "none");
+      return inputDiv.append("input").attr({
+        placeholder: function(_arg) {
+          var key;
+          key = _arg[0];
+          return originBangUri.search(true)[key];
+        },
+        type: "text",
+        "class": "form-control",
+        id: function(_arg) {
+          var key;
+          key = _arg[0];
+          return "query" + key;
+        }
+      }).on("change", function(_arg) {
+        var defaultValue, key, value, valueToSet;
+        key = _arg[0];
+        value = $(d3.event.currentTarget).val();
+        defaultValue = $(d3.event.currentTarget).attr("placeholder");
+        valueToSet = value && value !== defaultValue ? value : defaultValue;
+        bangUri.setSearch(key, valueToSet);
+        return updateUri($(d3.event.currentTarget), value && value !== defaultValue);
+      });
+    });
+    return parameterDiv.append("div").attr("class", "col-sm-1").append("button").attr("class", "glyphicon glyphicon-remove btn btn-default").on("click", function(_arg) {
+      var key;
+      key = _arg[0];
+      bangUri.removeSearch(key);
+      return renderQueryParameters();
+    });
+  };
+
+  updateUri = function(divToUpdate, toggleOn) {
+    if (toggleOn) {
+      divToUpdate.siblings(".form-control-feedback").show();
+      divToUpdate.parent().parent().addClass("has-warning");
+    } else {
+      divToUpdate.siblings(".form-control-feedback").hide();
+      divToUpdate.parent().parent().removeClass("has-warning");
+    }
+    $("#search").text(bangUri.search() || "(none)");
+    return $("#refreshLink").attr("href", bangUri.href());
   };
 
   renderQuery = function(root) {
@@ -678,7 +779,7 @@
         return;
       }
       bang = JSON.parse(originBody);
-      bangUri = document.location.href;
+      originBangUri = bangUri = new URI(document.location.href);
     } catch (_error) {
       ex = _error;
       console.log("Document not valid json, bang will not work: " + ex);
