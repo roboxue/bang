@@ -471,18 +471,18 @@ renderUri = (root)->
       <label class="control-label col-sm-2">Protocol</label>
       <div class="col-sm-10"><p class="form-control-static">#{bangUri.protocol()}</p></div>
     </div>
-    <div class="form-group" data-key="hostname">
+    <div class="form-group has-feedback" data-key="hostname">
       <label for="uriHostname" class="control-label col-sm-2">Hostname</label>
       <div class="col-sm-10">
         <input type="text" class="form-control" id="uriHstname" placeholder="#{bangUri.hostname() or 'www.myhost.com'}">
-        <span class="glyphicon glyphicon-warning-sign form-control-feedback" aria-hidden="true" style="display: none"></span>
+        <span class="glyphicon glyphicon-warning-sign form-control-feedback" aria-hidden="true"></span>
       </div>
     </div>
     <div class="form-group has-feedback" data-key="port">
       <label for="uriPort" class="control-label col-sm-2">Port</label>
       <div class="col-sm-10">
         <input type="number" min="0" max="99999" class="form-control" id="uriPort" placeholder="#{bangUri.port() or '80'}">
-        <span class="glyphicon glyphicon-warning-sign form-control-feedback" aria-hidden="true" style="display: none"></span>
+        <span class="glyphicon glyphicon-warning-sign form-control-feedback" aria-hidden="true"></span>
       </div>
     </div>
     <div class="form-group has-feedback" data-key="path">
@@ -490,7 +490,7 @@ renderUri = (root)->
       </label>
       <div class="col-sm-10">
         <input type="text" class="form-control" id="uriPath" placeholder="#{bangUri.path() or '(/path)'}">
-        <span class="glyphicon glyphicon-warning-sign form-control-feedback" aria-hidden="true" style="display: none"></span>
+        <span class="glyphicon glyphicon-warning-sign form-control-feedback" aria-hidden="true"></span>
       </div>
     </div>
     <div class="form-group has-feedback" data-key="hash">
@@ -498,7 +498,7 @@ renderUri = (root)->
       </label>
       <div class="col-sm-10">
         <input type="text" class="form-control" id="uriHash" placeholder="#{bangUri.hash() or '(#hash)'}" value="#{bangUri.hash()}">
-        <span class="glyphicon glyphicon-warning-sign form-control-feedback" aria-hidden="true" style="display: none"></span>
+        <span class="glyphicon glyphicon-warning-sign form-control-feedback" aria-hidden="true"></span>
       </div>
     </div>
     <div class="form-group">
@@ -526,6 +526,7 @@ renderUri = (root)->
       </div>
     </div>
   """
+  root.selectAll(".form-control-feedback").style({display: "none"})
   renderQueryParameters()
   $("#uri .form-group[data-key] input").change (ev)->
     key = $(ev.currentTarget).parent().parent().data("key")
