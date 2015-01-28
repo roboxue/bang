@@ -3,6 +3,11 @@
 
   "name": "Bang",
   "version": "0.1.2",
+  "icons": {
+    "32": "bang@32.png",
+    "64": "bang@64.png",
+    "128": "bang@128.png"
+  },
 
   "description": "Frontend JSON workspace",
   "author": "Robert Xue",

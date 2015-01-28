@@ -31,6 +31,7 @@ module.exports = (grunt) ->
     copy:
       dist:
         files: [
+          {src: ['*.png'], dest: 'dist/'}
           {src: ['lib/**/*.js', 'lib/**/*.css'], dest: 'dist/', filter: 'isFile'}
           {src: 'lib/bootstrap/glyphicons-halflings-regular.eot', dest: 'dist/lib/fonts/glyphicons-halflings-regular.eot'},
           {src: 'lib/bootstrap/glyphicons-halflings-regular.svg', dest: 'dist/lib/fonts/glyphicons-halflings-regular.svg'},
