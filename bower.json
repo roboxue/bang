@@ -1,6 +1,6 @@
 {
   "name": "bang",
-  "version": "0.0.1",
+  "version": "0.1.2",
   "main": "lib/main.js",
   "dependencies": {
     "jquery": "~2.1.3",

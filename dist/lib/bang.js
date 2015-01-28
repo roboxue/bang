@@ -1,5 +1,5 @@
 (function() {
-  var BangJsonPath, BangJsonPathFragment, BangJsonView, bang, bangJsonView, bangUri, didReset, didRunQuery, getPathFragmentForKey, load, originBangUri, originBody, prettyPrint, queryResult, render, renderHeader, renderQuery, renderQueryForm, renderQueryParameters, renderResponse, renderUri, replacer, replacerSimplified, runQuery, stringifyPadingSize, updateUri,
+  var BangJsonPath, BangJsonPathFragment, BangJsonView, bang, bangJsonView, bangUri, didReset, didRunQuery, getPathFragmentForKey, load, originBangUri, originBody, prettyPrint, queryResult, render, renderHeader, renderQuery, renderQueryForm, renderQueryParameters, renderRawResponseJSON, renderResponse, renderUri, replacer, replacerSimplified, runQuery, stringifyPadingSize, updateUri,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -23,19 +23,37 @@
     }
 
     BangJsonPathFragment.prototype.getQueryFragment = function() {
-      var arrayName, arrayRx, fullExpression, keyName, keyRx, type, _ref, _ref1;
+      var arrayName, arrayRx, fullExpression, keyName, keyRx, method, type, _ref, _ref1;
       arrayRx = /^(.+)\[]$/;
-      keyRx = /^:(.+)$/;
+      keyRx = /(^|^countBy|^countByType):(.+)$/;
       type = this.getFragmentType();
       switch (type) {
         case "ArrayRoot":
           _ref = this.get("fragment").match(arrayRx), fullExpression = _ref[0], arrayName = _ref[1];
-          return arrayName;
+          return {
+            value: arrayName
+          };
         case "ArrayKey":
-          _ref1 = this.get("fragment").match(keyRx), fullExpression = _ref1[0], keyName = _ref1[1];
-          return "map(function(row){return row." + keyName + ";})";
+          _ref1 = this.get("fragment").match(keyRx), fullExpression = _ref1[0], method = _ref1[1], keyName = _ref1[2];
+          switch (method) {
+            case "countBy":
+              return {
+                underscore: "countBy('" + keyName + "')"
+              };
+            case "countByType":
+              return {
+                underscore: "countBy(function(row){return typeof row['" + keyName + "']})"
+              };
+            default:
+              return {
+                underscore: "pluck('" + keyName + "')"
+              };
+          }
+          break;
         default:
-          return this.get("fragment");
+          return {
+            value: this.get("fragment")
+          };
       }
     };
 
@@ -43,7 +61,7 @@
       var arrayElementRx, arrayRx, keyRx;
       arrayRx = /^(.+)\[]$/;
       arrayElementRx = /^(.+)\[(\d+)]$/;
-      keyRx = /^:(.+)$/;
+      keyRx = /(^|^countBy|^countByType):(.+)$/;
       if (arrayRx.test(this.get("fragment"))) {
         return "ArrayRoot";
       } else if (arrayElementRx.test(this.get("fragment"))) {
@@ -56,11 +74,14 @@
     };
 
     BangJsonPathFragment.prototype.getArrayKeyName = function() {
-      var fullExpression, keyName, keyRx, _ref;
-      keyRx = /^:(.+)$/;
+      var fullExpression, keyName, keyRx, method, _ref;
+      keyRx = /(^|^countBy|^countByType):(.+)$/;
       if (keyRx.test(this.get("fragment"))) {
-        _ref = this.get("fragment").match(keyRx), fullExpression = _ref[0], keyName = _ref[1];
-        return keyName;
+        _ref = this.get("fragment").match(keyRx), fullExpression = _ref[0], method = _ref[1], keyName = _ref[2];
+        return {
+          method: method,
+          keyName: keyName
+        };
       }
     };
 
@@ -78,11 +99,17 @@
     };
 
     BangJsonPathFragment.prototype.getBaseFragment = function() {
-      var arrayName, arrayRx, fullName, _ref;
+      var arrayName, arrayRx, fullExpression, fullName, keyName, keyRx, method, _ref, _ref1;
       arrayRx = /^(.+)\[(\d+)]$/;
+      keyRx = /(^|^countBy|^countByType):(.+)$/;
       if (arrayRx.test(this.get("fragment"))) {
         _ref = this.get("fragment").match(arrayRx), fullName = _ref[0], arrayName = _ref[1];
         return arrayName + "[]";
+      } else if (keyRx.test(this.get("fragment"))) {
+        _ref1 = this.get("fragment").match(keyRx), fullExpression = _ref1[0], method = _ref1[1], keyName = _ref1[2];
+        if (method) {
+          return ":" + keyName;
+        }
       }
     };
 
@@ -116,38 +143,37 @@
       }
     };
 
-    BangJsonPath.prototype.getQuery = function(path) {
-      var reducer;
+    BangJsonPath.prototype.getQuery = function(path, forDisplay) {
+      var baseExpression, reducer, toReturn, underscoreWrapped;
+      underscoreWrapped = false;
       reducer = (function(pv, cv, index, array) {
+        var underscore, value, _ref;
         if (index === 0) {
-          return cv.getQueryFragment();
+          return pv || cv.getQueryFragment().value;
         }
         if (cv.getFragmentType() === "Value") {
-          return pv + ("['" + (cv.getQueryFragment()) + "']");
+          return pv + ("['" + (cv.getQueryFragment().value) + "']");
         } else {
-          return pv + "." + cv.getQueryFragment();
+          _ref = cv.getQueryFragment(), value = _ref.value, underscore = _ref.underscore;
+          if (value || underscoreWrapped) {
+            return pv + "." + value;
+          } else {
+            underscoreWrapped = true;
+            return ("_.chain(" + pv + ").") + underscore;
+          }
         }
       });
+      baseExpression = forDisplay ? this.baseExpression || "" : void 0;
       if (path) {
-        return path.reduce(reducer, "");
+        toReturn = path.reduce(reducer, baseExpression);
       } else {
-        return this.reduce(reducer, "");
+        toReturn = this.reduce(reducer, baseExpression);
       }
-    };
-
-    BangJsonPath.prototype.getDisplayedQuery = function() {
-      var reducer;
-      reducer = (function(pv, cv, index, array) {
-        if (index === 0) {
-          return pv;
-        }
-        if (cv.getFragmentType() === "Value") {
-          return pv + ("['" + (cv.getQueryFragment()) + "']");
-        } else {
-          return pv + "." + cv.getQueryFragment();
-        }
-      });
-      return this.reduce(reducer, this.baseExpression);
+      if (underscoreWrapped) {
+        return toReturn + ".value()";
+      } else {
+        return toReturn;
+      }
     };
 
     BangJsonPath.prototype.navigateTo = function(index) {
@@ -182,29 +208,83 @@
       var header, panelBody, root;
       root = d3.select(this.el);
       header = root.append("div").attr("class", "panel-heading");
-      header.append("span").attr("class", "panel-title").text("JSON Navigator");
+      header.append("span").attr("class", "panel-title").html("JSON Navigator (Response has been stored into variable <code class='bang'>bang</code>)");
       panelBody = root.append("div").attr("class", "panel-body");
       this.breadcrumbUl = panelBody.append("ul").attr("class", "breadcrumb");
-      this.codeBlockPre = panelBody.append("pre");
+      this.pageHeader = panelBody.append("div").attr("class", "page-header");
+      this.arrayToolbar = panelBody.append("div").attr("class", "btn-toolbar").attr("role", "toolbar");
+      root.append("div").attr("class", "panel-footer");
+      this.codeBlockPre = root.append("div").attr("class", "panel-body").append("pre");
       $(this.codeBlockPre.node()).hide();
       this.arrayContentTable = root.append("table").attr("class", "table table-striped");
-      this.indexSelectorDiv = root.append("div").attr("class", "panel-footer").append("div").attr("class", "form-inline");
-      return this.listenTo(this.model, "path:update", this.updateNavigator);
+      root.append("div").attr("class", "panel-footer");
+      this.indexSelectorDiv = root.selectAll(".panel-footer").append("div").attr("class", "form-inline");
+      return this.listenTo(this.model, "path:update", this.update);
     };
 
-    BangJsonView.prototype.updateNavigator = function(option) {
-      var error, path, query, result, type, _ref;
+    BangJsonView.prototype.update = function(option) {
+      var error, keyName, method, query, result, type, _ref, _ref1;
       this.clear();
-      path = this.model;
-      query = path.getQuery();
+      query = this.model.getQuery();
       _ref = runQuery(query), error = _ref.error, result = _ref.result;
       if (!(option && option.silent)) {
-        $("#query").val(path.getDisplayedQuery());
+        $("#query").val(this.model.getQuery(null, true));
       }
+      this.updateNavigator({
+        error: error,
+        result: result
+      });
+      type = this.model.last().getFragmentType();
+      if (result instanceof Array) {
+        if (type === "ArrayRoot") {
+          if (result.length === 0) {
+            this.pageHeader.html("<h3>Empty array</h3>");
+          } else {
+            this.pageHeader.html("<h3>Array with " + result.length + " elements</h3>");
+            this.updateArrayContent(result);
+          }
+        } else if (type === "ArrayKey") {
+          keyName = this.model.last().getArrayKeyName().keyName;
+          this.pageHeader.html("<h3>Key \"" + keyName + "\" in Array</h3>");
+          this.updateArrayPluckView(result, keyName);
+        }
+      } else if (result instanceof Object) {
+        if (_.size(result) === 0) {
+          this.pageHeader.html("<h3>Empty Object</h3>");
+          this.codeBlockPre.html("<span>Empty Object</span>");
+          $(this.codeBlockPre.node()).show();
+        } else {
+          if (type === "ArrayKey") {
+            _ref1 = this.model.last().getArrayKeyName(), keyName = _ref1.keyName, method = _ref1.method;
+            if (method === "countBy") {
+              this.pageHeader.html("<h3>Count by \"" + keyName + "\" in Array</h3>");
+            }
+            if (method === "countByType") {
+              this.pageHeader.html("<h3>Count by the type of \"" + keyName + "\" in Array</h3>");
+            }
+          } else {
+            this.pageHeader.html("<h3>Object with " + (_.size(result)) + " keys</h3>");
+          }
+          this.updateKeyValuePair(result);
+        }
+      } else {
+        this.pageHeader.html("<h3>String Value</h3>");
+        this.codeBlockPre.html(prettyPrint(result, true));
+        $(this.codeBlockPre.node()).show();
+      }
+      if (type === "ArrayElement") {
+        return this.updateArrayNavigator(this.model.last().getArrayIndex());
+      }
+    };
+
+    BangJsonView.prototype.updateNavigator = function(_arg) {
+      var error, path, result;
+      error = _arg.error, result = _arg.result;
+      path = this.model;
       if (error) {
         return this.breadcrumbUl.text(JSON.stringify(error, null, 4));
       }
-      this.breadcrumbUl.selectAll("li").data(this.model.models).enter().append("li").each(function(pathFragment, i) {
+      return this.breadcrumbUl.selectAll("li").data(this.model.models).enter().append("li").each(function(pathFragment, i) {
         if (i === path.length - 1) {
           if (pathFragment.getBaseFragment()) {
             return d3.select(this).append("a").attr("href", "#").text(pathFragment.getDisplayName()).on("click", function() {
@@ -222,22 +302,6 @@
           });
         }
       });
-      type = path.last().getFragmentType();
-      if (result instanceof Array) {
-        if (type === "ArrayRoot") {
-          this.updateArrayContent(result);
-        } else if (type === "ArrayKey") {
-          this.updateArrayPluckView(result, path.last().getArrayKeyName());
-        }
-      } else if (result instanceof Object) {
-        this.updateKeyValuePair(result);
-      } else {
-        this.codeBlockPre.html(prettyPrint(result, true));
-        $(this.codeBlockPre.node()).show();
-      }
-      if (type === "ArrayElement") {
-        return this.updateArrayNavigator(path.last().getArrayIndex());
-      }
     };
 
     BangJsonView.prototype.updateArrayNavigator = function(_arg) {
@@ -267,14 +331,14 @@
       }
     };
 
-    BangJsonView.prototype.updateKeyValuePair = function(result) {
+    BangJsonView.prototype.updateKeyValuePair = function(result, option) {
       var rows, thead;
       thead = this.arrayContentTable.append("thead").append("tr");
       rows = this.arrayContentTable.append("tbody").selectAll("tr").data(Object.keys(result)).enter().append("tr").each(function(key) {
         var pathFragment;
         if (!(result[key] instanceof Array || result[key] instanceof Object)) {
           d3.select(this).append("th").text(key);
-          return d3.select(this).append("td").text(result[key] || "(empty)");
+          return d3.select(this).append("td").text(result[key] != null ? result[key].toString() : "null");
         } else {
           pathFragment = getPathFragmentForKey(result, key);
           d3.select(this).append("th").append("a").attr("href", "#").text(pathFragment.get("fragment")).on("click", function() {
@@ -307,37 +371,40 @@
 
     BangJsonView.prototype.updateArrayContent = function(result) {
       var keyStats;
-      if (result.length === 0) {
-        return this.indexSelectorDiv.html("<span>Empty array</span>");
+      this.indexSelectorDiv.append("div").attr("class", "input-group").html("<span class=\"input-group-addon\">Element No.</span>\n<input type='number' class='form-control' id='arrayIndex' value='1' min='1' max='" + result.length + "'>\n<span class=\"input-group-addon\">/ " + result.length + "</span>");
+      this.indexSelectorDiv.append("button").attr("type", "submit").attr("class", "btn btn-default").text("Go").on("click", function() {
+        var index;
+        d3.event.preventDefault();
+        index = parseInt($("#arrayIndex").val()) - 1;
+        return bangJsonView.model.navigateToArrayElement(index);
+      });
+      keyStats = _.chain(result).map(function(row) {
+        return _.compact(_.keys(row));
+      }).flatten().unique().map(function(key) {
+        var types;
+        types = _.countBy(result, function(row) {
+          return typeof row[key];
+        });
+        return {
+          key: key,
+          types: types
+        };
+      }).value();
+      if (keyStats.length > 0) {
+        return this.updateArraySchemaTable(keyStats, result);
       } else {
-        this.indexSelectorDiv.append("div").attr("class", "input-group").html("<span class=\"input-group-addon\">Element No.</span>\n<input type='number' class='form-control' id='arrayIndex' value='0' min='0' max='" + (result.length - 1) + "'>\n<span class=\"input-group-addon\">/ " + result.length + "</span>");
-        this.indexSelectorDiv.append("button").attr("type", "submit").attr("class", "btn btn-default").text("Go").on("click", function() {
-          var index;
-          d3.event.preventDefault();
-          index = $("#arrayIndex").val();
-          return bangJsonView.model.navigateToArrayElement(index);
-        });
-        keyStats = {};
-        result.forEach(function(row) {
-          return _.keys(row).forEach(function(key) {
-            return keyStats[key] = (keyStats[key] || 0) + 1;
-          });
-        });
-        if (_.size(keyStats) > 0) {
-          return this.updateArraySchemaTable(_.pairs(keyStats), result);
-        } else {
-          this.codeBlockPre.html(prettyPrint(result, true));
-          return $(this.codeBlockPre.node()).show();
-        }
+        this.codeBlockPre.html(prettyPrint(result, true));
+        return $(this.codeBlockPre.node()).show();
       }
     };
 
     BangJsonView.prototype.updateArrayPluckView = function(result, key) {
-      var rows, sortHelper, tbody, thead;
+      var containsObject, rows, sortHelper, tbody, thead, toolbar;
       thead = this.arrayContentTable.append("thead").append("tr");
       tbody = this.arrayContentTable.append("tbody");
+      containsObject = false;
       rows = tbody.selectAll("tr").data(result).enter().append("tr").each(function(value, i) {
-        var tr;
+        var tr, valueString;
         tr = d3.select(this);
         tr.attr("data-index", i);
         tr.append("th").append("a").attr("href", "#").text("Element " + i).on("click", function() {
@@ -352,16 +419,17 @@
           return bangJsonView.model.trigger("path:update");
         });
         if (value instanceof Object) {
-          tr.append("td").append("pre").html(prettyPrint(value, true) || "(empty)");
+          containsObject = true;
+          tr.append("td").append("pre").html(prettyPrint(value, true) || "{}");
           return tr.attr("data-value", "object");
         } else {
-          tr.append("td").text(value || "(empty)");
-          return tr.attr("data-value", value || "(empty)");
+          valueString = value != null ? value.toString() : "null";
+          tr.append("td").text(valueString);
+          return tr.attr("data-value", valueString);
         }
       });
       sortHelper = function(iconSpan, field) {
         var iconClass, sortDescription;
-        console.log(iconSpan.parents("tr").find(".sortable .glyphicon"));
         iconSpan.parents("tr").find(".sortable .glyphicon").removeClass("glyphicon-sort glyphicon-sort-by-alphabet-alt glyphicon-sort-by-alphabet");
         if (iconSpan.attr("aria-sort") === "ascending") {
           sortDescription = "descending";
@@ -378,9 +446,28 @@
       thead.append("th").attr("class", "sortable").html("Index<span class='glyphicon glyphicon-sort'></span>").on("click", function() {
         return sortHelper($(this).find(".glyphicon"), "index");
       });
-      return thead.append("th").attr("class", "sortable").html("Value<span class='glyphicon glyphicon-sort'></span>").on("click", function() {
+      thead.append("th").attr("class", "sortable").html("Value<span class='glyphicon glyphicon-sort'></span>").on("click", function() {
         return sortHelper($(this).find(".glyphicon"), "value");
       });
+      if (!containsObject) {
+        toolbar = this.arrayToolbar.append("div").attr("class", "btn-group").attr("role", "group");
+        toolbar.append("button").attr("class", "btn btn-default").html("<span class='glyphicon glyphicon-list-alt' aria-hidden='true'></span> Count By Value").on("click", function() {
+          d3.event.preventDefault();
+          bangJsonView.model.pop();
+          bangJsonView.model.push(new BangJsonPathFragment({
+            fragment: "countBy:" + key
+          }));
+          return bangJsonView.model.trigger("path:update");
+        });
+        return toolbar.append("button").attr("class", "btn btn-default").html("<span class='glyphicon glyphicon-list-alt' aria-hidden='true'></span> Count By Type").on("click", function() {
+          d3.event.preventDefault();
+          bangJsonView.model.pop();
+          bangJsonView.model.push(new BangJsonPathFragment({
+            fragment: "countByType:" + key
+          }));
+          return bangJsonView.model.trigger("path:update");
+        });
+      }
     };
 
     BangJsonView.prototype.updateArraySchemaTable = function(keyStats, array) {
@@ -389,11 +476,11 @@
       rows = this.arrayContentTable.append("tbody").selectAll("tr").data(keyStats).enter().append("tr");
       rows.append("th").append("a").attr("href", "#").text(function(_arg) {
         var key;
-        key = _arg[0];
+        key = _arg.key;
         return key;
       }).on("click", function(_arg) {
         var key;
-        key = _arg[0];
+        key = _arg.key;
         d3.event.preventDefault();
         bangJsonView.model.push(new BangJsonPathFragment({
           fragment: ":" + key
@@ -401,9 +488,12 @@
         return bangJsonView.model.trigger("path:update");
       });
       rows.append("td").text(function(_arg) {
-        var key, times;
-        key = _arg[0], times = _arg[1];
-        return "" + times + " (" + ((100 * times / array.length).toFixed(0)) + "%)";
+        var key, times, types;
+        key = _arg.key, types = _arg.types;
+        times = _.reduce(_.values(types), (function(memo, num) {
+          return memo + num;
+        }), 0);
+        return ("" + times + " (" + ((100 * times / array.length).toFixed(0)) + "%) -- ") + JSON.stringify(types);
       });
       thead.append("th").attr("class", "sortable").html("Key<span class='glyphicon glyphicon-sort'></span>").on("click", function() {
         var icon;
@@ -426,7 +516,9 @@
     BangJsonView.prototype.clear = function() {
       this.breadcrumbUl.text("");
       this.indexSelectorDiv.text("");
+      this.pageHeader.text("");
       this.codeBlockPre.text("");
+      this.arrayToolbar.text("");
       $(this.codeBlockPre.node()).hide();
       return this.arrayContentTable.text("");
     };
@@ -450,15 +542,18 @@
       ], {
         baseExpression: "bang"
       }),
-      el: queryRow.append("div").attr("class", "col-lg-6 col-md-6 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-default").attr("id", "navigatorPanel").node()
+      el: queryRow.append("div").attr("class", "col-lg-12 col-md-12 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-default panel-primary").attr("id", "navigatorPanel").node()
     });
     bangJsonView.render();
-    renderQuery(queryRow.append("div").attr("class", "col-lg-6 col-md-6 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-default").attr("id", "queryPanel"));
+    renderQuery(queryRow.append("div").attr("class", "col-lg-12 col-md-12 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-default").attr("id", "queryPanel"));
     renderResponse(responseRow.append("div").attr("class", "col-lg-12 col-md-12 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-success"));
     $(".panel-heading");
     $(".panel-toggle").click(function(ev) {
       ev.preventDefault();
-      return $(ev.currentTarget).parent().siblings(".panel-body, .panel-footer").toggle();
+      $(ev.currentTarget).parent().siblings(".panel-body").toggle();
+      if ($("#rawResponse").is(":visible") && $("#rawResponse").is(":empty")) {
+        return renderRawResponseJSON();
+      }
     });
     root.append("link").attr({
       rel: "stylesheet",
@@ -475,21 +570,8 @@
     return $("#reset, .bang").click(didReset);
   };
 
-  renderHeader = function(root) {
-    root.html("<div class=\"navbar-header\">\n  <a class=\"navbar-brand\" href=\"http://github.com/roboxue/bang\">Bang\n    <ruby>\n     棒 <rt> Bàng</rt>\n    </ruby>\n    <small>(Awesome)</small>\n  </a>\n</div>\n<div class=\"collapse navbar-collapse\">\n  <p class=\"navbar-text\">Lightweight awesome <code>JSON</code> workspace - the raw response is in variable <code class=\"bang\">bang</code></p>\n  <p class=\"navbar-text navbar-right\"><a href=\"#\" class=\"navbar-link\" id=\"dismiss\">Dismiss Workspace</a></p>\n</div>");
-    return $("#dismiss").click(function(ev) {
-      ev.preventDefault();
-      return d3.select("body").text("").append("pre").html(JSON.stringify(JSON.parse(originBody), null, stringifyPadingSize));
-    });
-  };
-
-  renderResponse = function(root) {
-    var header;
-    header = root.append("div").attr("class", "panel-heading");
-    header.append("span").attr("class", "panel-title").html("Response from <code>" + (bangUri.href()) + "</code> stored into <code class='bang'>bang</code>");
-    header.append("div").attr("class", "panel-toggle pull-right").text("toggle details");
-    renderUri(root.append("div").attr("class", "form-horizontal panel-footer").attr("id", "uri"));
-    root.append("div").attr("class", "panel-body").append("div").attr("id", "rawResponse").html(prettyPrint(bang));
+  renderRawResponseJSON = function() {
+    $("#rawResponse").html(prettyPrint(bang));
     $("#rawResponse [data-index][data-folded]").each(function() {
       var childSiblings, currentIndex, node;
       node = $(this);
@@ -559,8 +641,25 @@
     });
   };
 
+  renderHeader = function(root) {
+    root.html("<div class=\"navbar-header\">\n  <a class=\"navbar-brand\" href=\"http://github.com/roboxue/bang\">Bang\n    <ruby>\n     棒<rt>Bàng</rt>\n    </ruby>\n    <small>(Awesome)</small>\n  </a>\n</div>\n<div class=\"collapse navbar-collapse\">\n  <p class=\"navbar-text\">Lightweight awesome <code>JSON</code> workspace - the raw response is in variable <code class=\"bang\">bang</code></p>\n  <p class=\"navbar-text navbar-right\"><a href=\"#\" class=\"navbar-link\" id=\"dismiss\">Dismiss Workspace</a></p>\n</div>");
+    return $("#dismiss").click(function(ev) {
+      ev.preventDefault();
+      return d3.select("body").text("").append("pre").html(JSON.stringify(JSON.parse(originBody), null, stringifyPadingSize));
+    });
+  };
+
+  renderResponse = function(root) {
+    var header;
+    header = root.append("div").attr("class", "panel-heading");
+    header.append("span").attr("class", "panel-title").html("Response from <code>" + (bangUri.href()) + "</code> stored into <code class='bang'>bang</code>");
+    header.append("div").attr("class", "panel-toggle pull-right").text("toggle details");
+    renderUri(root.append("div").attr("class", "form-horizontal panel-footer").attr("id", "uri"));
+    return root.append("div").attr("class", "panel-body").style("display", "none").append("div").attr("id", "rawResponse");
+  };
+
   renderUri = function(root) {
-    root.html("<div class=\"form-group\" data-key=\"protocol\">\n  <label class=\"control-label col-sm-2\">Protocol</label>\n  <div class=\"col-sm-10\"><p class=\"form-control-static\">" + (bangUri.protocol()) + "</p></div>\n</div>\n<div class=\"form-group\" data-key=\"hostname\">\n  <label class=\"control-label col-sm-2\">Hostname</label>\n  <div class=\"col-sm-10\">\n    <input type=\"text\" class=\"form-control\" id=\"uriHstname\" placeholder=\"" + (bangUri.hostname() || 'www.myhost.com') + "\">\n    <span class=\"glyphicon glyphicon-warning-sign form-control-feedback\" aria-hidden=\"true\" style=\"display: none\"></span>\n  </div>\n</div>\n<div class=\"form-group\" data-key=\"port\">\n  <label class=\"control-label col-sm-2\">Port</label>\n  <div class=\"col-sm-10\"><p class=\"form-control-static\">" + (bangUri.port() || 80) + "</p></div>\n</div>\n<div class=\"form-group has-feedback\" data-key=\"path\">\n  <label for=\"uriPath\" class=\"col-sm-2 control-label\">Path\n  </label>\n  <div class=\"col-sm-10\">\n    <input type=\"text\" class=\"form-control\" id=\"uriPath\" placeholder=\"" + (bangUri.path() || '/path') + "\">\n    <span class=\"glyphicon glyphicon-warning-sign form-control-feedback\" aria-hidden=\"true\" style=\"display: none\"></span>\n  </div>\n</div>\n<div class=\"form-group has-feedback\" data-key=\"hash\">\n  <label for=\"uriHash\" class=\"col-sm-2 control-label\">Hash\n  </label>\n  <div class=\"col-sm-10\">\n    <input type=\"text\" class=\"form-control\" id=\"uriHash\" placeholder=\"" + (bangUri.hash() || '#hash') + "\" value=\"" + (bangUri.hash()) + "\">\n    <span class=\"glyphicon glyphicon-warning-sign form-control-feedback\" aria-hidden=\"true\" style=\"display: none\"></span>\n  </div>\n</div>\n<div class=\"form-group\">\n  <label class=\"control-label col-sm-2\">Query String</label>\n  <div class=\"col-sm-10\">\n    <pre class=\"form-control-static\" id=\"search\"></pre>\n  </div>\n</div>\n<div id=\"queryParameters\">\n</div>\n<div class=\"form-group\" id=\"addNewQueryParameter\">\n  <div class=\"col-sm-offset-2 col-sm-2\">\n    <button class=\"btn btn-default control-label glyphicon glyphicon-plus-sign\">Add</button>\n  </div>\n  <div class=\"col-sm-4\">\n    <input type=\"text\" class=\"form-control\" id=\"newKey\" placeholder=\"new key\">\n  </div>\n  <div class=\"col-sm-4\">\n    <input type=\"text\" class=\"form-control\" id=\"newValue\" placeholder=\"new value\">\n  </div>\n</div>\n<div class=\"form-group\">\n  <div class=\"col-sm-offset-2 col=sm-10\">\n    <a id=\"refreshLink\">Refresh</a>\n  </div>\n</div>");
+    root.html("<div class=\"form-group\" data-key=\"protocol\">\n  <label class=\"control-label col-sm-2\">Protocol</label>\n  <div class=\"col-sm-10\"><p class=\"form-control-static\">" + (bangUri.protocol()) + "</p></div>\n</div>\n<div class=\"form-group\" data-key=\"hostname\">\n  <label for=\"uriHostname\" class=\"control-label col-sm-2\">Hostname</label>\n  <div class=\"col-sm-10\">\n    <input type=\"text\" class=\"form-control\" id=\"uriHstname\" placeholder=\"" + (bangUri.hostname() || 'www.myhost.com') + "\">\n    <span class=\"glyphicon glyphicon-warning-sign form-control-feedback\" aria-hidden=\"true\" style=\"display: none\"></span>\n  </div>\n</div>\n<div class=\"form-group has-feedback\" data-key=\"port\">\n  <label for=\"uriPort\" class=\"control-label col-sm-2\">Port</label>\n  <div class=\"col-sm-10\">\n    <input type=\"number\" min=\"0\" max=\"99999\" class=\"form-control\" id=\"uriPort\" placeholder=\"" + (bangUri.port() || '80') + "\">\n    <span class=\"glyphicon glyphicon-warning-sign form-control-feedback\" aria-hidden=\"true\" style=\"display: none\"></span>\n  </div>\n</div>\n<div class=\"form-group has-feedback\" data-key=\"path\">\n  <label for=\"uriPath\" class=\"col-sm-2 control-label\">Path\n  </label>\n  <div class=\"col-sm-10\">\n    <input type=\"text\" class=\"form-control\" id=\"uriPath\" placeholder=\"" + (bangUri.path() || '(/path)') + "\">\n    <span class=\"glyphicon glyphicon-warning-sign form-control-feedback\" aria-hidden=\"true\" style=\"display: none\"></span>\n  </div>\n</div>\n<div class=\"form-group has-feedback\" data-key=\"hash\">\n  <label for=\"uriHash\" class=\"col-sm-2 control-label\">Hash\n  </label>\n  <div class=\"col-sm-10\">\n    <input type=\"text\" class=\"form-control\" id=\"uriHash\" placeholder=\"" + (bangUri.hash() || '(#hash)') + "\" value=\"" + (bangUri.hash()) + "\">\n    <span class=\"glyphicon glyphicon-warning-sign form-control-feedback\" aria-hidden=\"true\" style=\"display: none\"></span>\n  </div>\n</div>\n<div class=\"form-group\">\n  <label class=\"control-label col-sm-2\">Query String</label>\n  <div class=\"col-sm-10\">\n    <pre class=\"form-control-static\" id=\"search\"></pre>\n  </div>\n</div>\n<div id=\"queryParameters\">\n</div>\n<div class=\"form-group\" id=\"addNewQueryParameter\">\n  <div class=\"col-sm-offset-2 col-sm-2\">\n    <button class=\"btn btn-default control-label glyphicon glyphicon-plus-sign\">Add</button>\n  </div>\n  <div class=\"col-sm-4\">\n    <input type=\"text\" class=\"form-control\" id=\"newKey\" placeholder=\"new key\">\n  </div>\n  <div class=\"col-sm-4\">\n    <input type=\"text\" class=\"form-control\" id=\"newValue\" placeholder=\"new value\">\n  </div>\n</div>\n<div class=\"form-group\">\n  <div class=\"col-sm-offset-2 col=sm-10\">\n    <a id=\"refreshLink\">Refresh</a>\n  </div>\n</div>");
     renderQueryParameters();
     $("#uri .form-group[data-key] input").change(function(ev) {
       var defaultValue, key, value, valueToSet;
@@ -738,7 +837,7 @@
   };
 
   renderQueryForm = function(root) {
-    return root.html("<div class=\"form-horizontal\">\n  <div class=\"form-group\">\n    <label for=\"query\" class=\"col-sm-2 control-label\">Query</label>\n    <div class=\"col-sm-10\">\n      <textarea class=\"form-control\" id=\"query\" placeholder=\"Any Javascript Expression!\"></textarea>\n    </div>\n  </div>\n  <div class=\"form-group\">\n    <div class=\"col-sm-offset-2 col-sm-10\">\n      <button type=\"submit\" class=\"btn btn-default\" id=\"runQuery\">Run it!</button>\n      <button type=\"reset\" class=\"btn btn-default\" id=\"reset\">Reset</button>\n    </div>\n  </div>\n</div>");
+    return root.html("<div class=\"form-horizontal\">\n  <div class=\"form-group\">\n    <label for=\"query\" class=\"col-sm-2 control-label\">Query</label>\n    <div class=\"col-sm-10\">\n      <textarea class=\"form-control\" id=\"query\" placeholder=\"Any Javascript Expression!\"></textarea>\n      <span id=\"helpBlock\" class=\"help-block\">Supports native Javascript, <a href=\"http://jquery.com\">jQuery</a>, <a href=\"http://d3js.org\">d3.js</a>, <a href=\"http://underscorejs.org\">underscore.js</a>, <a href=\"http://backbonejs.org\">backbone.js</a></span>\n    </div>\n  </div>\n  <div class=\"form-group\">\n    <div class=\"col-sm-offset-2 col-sm-10\">\n      <button type=\"submit\" class=\"btn btn-default\" id=\"runQuery\">Run it!</button>\n      <button type=\"reset\" class=\"btn btn-default\" id=\"reset\">Reset</button>\n    </div>\n  </div>\n</div>");
   };
 
   stringifyPadingSize = 4;
@@ -779,9 +878,10 @@
   };
 
   prettyPrint = function(obj, simplifiedVersion) {
-    var jsonLine;
+    var jsonLine, replacerToUse;
+    replacerToUse = simplifiedVersion ? replacerSimplified : replacer;
     jsonLine = /^( *)("[\w]+": )?("[^"]*"|[\w.+-]*)?([,\[\{}\]]*)?$/mg;
-    return JSON.stringify(obj, null, stringifyPadingSize).replace(/&/g, '&amp;').replace(/\\"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(jsonLine, simplifiedVersion ? replacerSimplified : replacer);
+    return JSON.stringify(obj, null, stringifyPadingSize).replace(/&/g, '&amp;').replace(/\\"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(jsonLine, replacerToUse);
   };
 
   load = function() {
