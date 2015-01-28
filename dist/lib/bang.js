@@ -1,5 +1,5 @@
 (function() {
-  var BangJsonPath, BangJsonPathFragment, BangJsonView, bang, bangJsonView, bangUri, didReset, didRunQuery, getPathFragmentForKey, load, originBangUri, originBody, prettyPrint, queryResult, render, renderHeader, renderQuery, renderQueryForm, renderQueryParameters, renderRawResponseJSON, renderResponse, renderUri, replacer, replacerSimplified, runQuery, stringifyPadingSize, updateUri,
+  var BangJsonPath, BangJsonPathFragment, BangJsonView, bang, bangJsonView, bangUri, didReset, didRunQuery, getPathFragmentForKey, load, loadGoogleAnalytics, originBangUri, originBody, prettyPrint, queryResult, render, renderHeader, renderQuery, renderQueryForm, renderQueryParameters, renderRawResponseJSON, renderResponse, renderUri, replacer, replacerSimplified, runQuery, stringifyPadingSize, updateUri,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -528,8 +528,11 @@
   })(Backbone.View);
 
   render = function() {
-    var queryRow, responseRow, root;
+    var queryRow, responseRow, root, _gaq;
     console.log("Bang will make your life with JSON easier!");
+    _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-59100802-1']);
+    _gaq.push(['_trackPageview']);
     root = d3.select("body").text("").append("div").attr("class", "container");
     renderHeader(root.append("div").attr("class", "navbar navbar-default"));
     queryRow = root.append("div").attr("class", "row");
@@ -905,7 +908,22 @@
       console.log("Bang can't work on HTML and XML pages");
       return;
     }
+    loadGoogleAnalytics();
     return render();
+  };
+
+  loadGoogleAnalytics = function() {
+    var ga, s;
+    ga = document.createElement('script');
+    ga.type = 'text/javascript';
+    ga.async = true;
+    ga.src = 'https://ssl.google-analytics.com/ga.js';
+    if (document.getElementsByTagName('script').length > 0) {
+      s = document.getElementsByTagName('script')[0];
+      return s.parentNode.insertBefore(ga, s);
+    } else {
+      return document.body.appendChild(ga);
+    }
   };
 
   load();

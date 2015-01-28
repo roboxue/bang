@@ -12,7 +12,12 @@
   "description": "Frontend JSON workspace",
   "author": "Robert Xue",
   "homepage_url": "https://github.com/roboxue/bang",
+  "permissions": [
+    "https://www.google-analytics.com/",
+    "storage"
+  ],
 
+  "content_security_policy": "script-src 'self' https://ssl.google-analytics.com; object-src 'self'",
   "content_scripts": [ {
     "js": [
       "lib/jquery/jquery.js",
