@@ -79,7 +79,6 @@ class BangJsonPathFragment extends Backbone.Model
       [fullName, arrayName] = @get("fragment").match arrayRx
       arrayName + "[#{index}]"
 
-
 class BangJsonPath extends Backbone.Collection
   model: BangJsonPathFragment
 
@@ -272,7 +271,7 @@ class BangJsonView extends Backbone.View
       {key, types}
     ).value()
     if keyStats.length > 0
-      @updateArraySchemaTable keyStats, result
+      @updateArraySchemaList keyStats, result
     else
       @codeBlockPre.html(prettyPrint(result, true))
       $(@codeBlockPre.node()).show()
@@ -330,7 +329,13 @@ class BangJsonView extends Backbone.View
         bangJsonView.model.push new BangJsonPathFragment {fragment: "countByType:#{key}"}
         bangJsonView.model.trigger "path:update"
 
-  updateArraySchemaTable: (keyStats, array)->
+  updateArraySchemaList: (keyStats, array)->
+    @arrayToolbar.append("div").attr("class", "btn-group").attr("role", "group")
+    .append("button").attr("class", "btn btn-default").html("<span class='glyphicon glyphicon-th' aria-hidden='true'></span> Table View").on "click", =>
+      d3.event.preventDefault()
+      @arrayToolbar.text ""
+      @arrayContentTable.text ""
+      @updateArraySchemaTable keyStats, array
     thead = @arrayContentTable.append("thead").append("tr")
     rows = @arrayContentTable.append("tbody").selectAll("tr").data(keyStats).enter().append("tr")
     rows.append("th").append("a").attr("href", "#").text(({key})-> key).on "click", ({key})->
@@ -347,12 +352,61 @@ class BangJsonView extends Backbone.View
       if icon.attr("aria-sort") is "ascending"
         icon.attr("aria-sort", "descending").addClass("glyphicon-sort-by-alphabet-alt").removeClass("glyphicon-sort-by-alphabet")
         rows.sort (a, b)->
-          d3.descending a[0], b[0]
+          d3.descending a.key, b.key
       else
         icon.attr("aria-sort", "ascending").addClass("glyphicon-sort-by-alphabet").removeClass("glyphicon-sort-by-alphabet-alt")
         rows.sort (a, b)->
-          d3.ascending a[0], b[0]
+          d3.ascending a.key, b.key
     thead.append("th").text("Times occurred in elements")
+
+  updateArraySchemaTable: (keyStats, array)->
+    @arrayToolbar.append("div").attr("class", "btn-group").attr("role", "group")
+    .append("button").attr("class", "btn btn-default").html("<span class='glyphicon glyphicon-th-list' aria-hidden='true'></span> List View").on "click", =>
+      d3.event.preventDefault()
+      @arrayToolbar.text ""
+      @arrayContentTable.text ""
+      @updateArraySchemaList keyStats, array
+    keys = _.pluck keyStats, "key"
+    thead = @arrayContentTable.append("thead")
+    titleRow = thead.append("tr")
+    dismissRow = thead.append("tr")
+    tbody = @arrayContentTable.append("tbody")
+    rows = tbody.selectAll("tr").data(array).enter().append("tr")
+    rows.append("th").append("a").attr("href", "#").text((d, i)-> i + 1).on "click", (d, i)->
+      d3.event.preventDefault()
+      bangJsonView.model.navigateToArrayElement(i)
+    rows.each (element, i)->
+      currentRow = d3.select(this)
+      currentRow.selectAll("td[data-key]").data(keys).enter()
+      .append("td").attr("data-key", (key)-> key).attr("data-value", (key)-> element[key]).html((key)->
+        if element[key] instanceof Object
+          prettyPrint(element[key], true)
+        else
+          element[key] or "(null)"
+      )
+    sortHelper = (iconSpan, field)->
+      iconSpan.parents("tr").find(".sortable .glyphicon").removeClass("glyphicon-sort glyphicon-sort-by-alphabet-alt glyphicon-sort-by-alphabet")
+      if iconSpan.attr("aria-sort") is "ascending"
+        sortDescription = "descending"
+        iconClass = "glyphicon-sort-by-alphabet-alt"
+      else
+        sortDescription = "ascending"
+        iconClass = "glyphicon-sort-by-alphabet"
+      iconSpan.attr("aria-sort", sortDescription).addClass(iconClass)
+      rows.sort((a,b)->
+        d3[sortDescription](a[field] or "(null)", b[field] or "(null)")
+      )
+    titleRow.append("th").text("Index")
+    titleRow.selectAll("th[data-key]").data(keys).enter().append("th").attr("class", "sortable").attr("data-key", (key)-> key).call((header)->
+      header.append("span").text (key)-> key
+      header.append("span").attr("class", "glyphicon glyphicon-sort")
+    ).on "click", (key)->
+      sortHelper $(this).find(".glyphicon"), key
+    dismissRow.append("td")
+    dismissRow.selectAll("td[data-key]").data(keys).enter().append("td").attr("data-key", (key)-> key)
+    .append("small").attr("class", "glyphicon glyphicon-eye-close dismiss").attr("title", "dismiss").on "click", (key)->
+      thead.selectAll("td[data-key='#{key}'], th[data-key='#{key}'").remove()
+      rows.selectAll("td[data-key='#{key}']").remove()
 
   clear: ->
     @breadcrumbUl.text ""
@@ -366,7 +420,7 @@ class BangJsonView extends Backbone.View
 render = ->
   console.log "Bang will make your life with JSON easier!"
   chrome.runtime.sendMessage {stage: "load"}
-  root = d3.select("body").text("").append("div").attr("class", "container")
+  root = d3.select("body").text("").append("div").attr("class", "container-fluid")
   renderHeader root.append("div").attr("class", "navbar navbar-default")
   queryRow = root.append("div").attr("class", "row")
   responseRow = root.append("div").attr("class", "row")
@@ -555,7 +609,7 @@ renderUri = (root)->
 
 renderQueryParameters = ->
   $("#refreshLink").attr("href", bangUri.href())
-  $("#search").text bangUri.search() or "(none)"
+  $("#search").text bangUri.search() or "(null)"
   parameterDiv = d3.select("#queryParameters").text("").selectAll("div.form-group").data(_.pairs(bangUri.search(true))).enter()
   .append("div").attr("class", "form-group has-feedback queryParameter").attr("data-key", ([key])-> key)
   parameterDiv.append("label").attr("class", "control-label col-sm-offset-2 col-sm-2").attr("for", ([key])-> "query#{key}").text(([key])-> key)
@@ -583,7 +637,7 @@ updateUri = (divToUpdate, toggleOn)->
   else
     divToUpdate.siblings(".form-control-feedback").hide()
     divToUpdate.parent().parent().removeClass("has-warning")
-  $("#search").text bangUri.search() or "(none)"
+  $("#search").text bangUri.search() or "(null)"
   $("#refreshLink").attr("href", bangUri.href())
 
 renderQuery = (root)->
@@ -618,7 +672,7 @@ runQuery = (query)->
   try
     result = eval query
     if result is undefined
-      return {error: "(undefined)"}
+      return {error: "(null)"}
     else
       return {result}
   catch ex

@@ -391,7 +391,7 @@
         };
       }).value();
       if (keyStats.length > 0) {
-        return this.updateArraySchemaTable(keyStats, result);
+        return this.updateArraySchemaList(keyStats, result);
       } else {
         this.codeBlockPre.html(prettyPrint(result, true));
         return $(this.codeBlockPre.node()).show();
@@ -470,8 +470,16 @@
       }
     };
 
-    BangJsonView.prototype.updateArraySchemaTable = function(keyStats, array) {
+    BangJsonView.prototype.updateArraySchemaList = function(keyStats, array) {
       var rows, thead;
+      this.arrayToolbar.append("div").attr("class", "btn-group").attr("role", "group").append("button").attr("class", "btn btn-default").html("<span class='glyphicon glyphicon-th' aria-hidden='true'></span> Table View").on("click", (function(_this) {
+        return function() {
+          d3.event.preventDefault();
+          _this.arrayToolbar.text("");
+          _this.arrayContentTable.text("");
+          return _this.updateArraySchemaTable(keyStats, array);
+        };
+      })(this));
       thead = this.arrayContentTable.append("thead").append("tr");
       rows = this.arrayContentTable.append("tbody").selectAll("tr").data(keyStats).enter().append("tr");
       rows.append("th").append("a").attr("href", "#").text(function(_arg) {
@@ -501,16 +509,88 @@
         if (icon.attr("aria-sort") === "ascending") {
           icon.attr("aria-sort", "descending").addClass("glyphicon-sort-by-alphabet-alt").removeClass("glyphicon-sort-by-alphabet");
           return rows.sort(function(a, b) {
-            return d3.descending(a[0], b[0]);
+            return d3.descending(a.key, b.key);
           });
         } else {
           icon.attr("aria-sort", "ascending").addClass("glyphicon-sort-by-alphabet").removeClass("glyphicon-sort-by-alphabet-alt");
           return rows.sort(function(a, b) {
-            return d3.ascending(a[0], b[0]);
+            return d3.ascending(a.key, b.key);
           });
         }
       });
       return thead.append("th").text("Times occurred in elements");
+    };
+
+    BangJsonView.prototype.updateArraySchemaTable = function(keyStats, array) {
+      var dismissRow, keys, rows, sortHelper, tbody, thead, titleRow;
+      this.arrayToolbar.append("div").attr("class", "btn-group").attr("role", "group").append("button").attr("class", "btn btn-default").html("<span class='glyphicon glyphicon-th-list' aria-hidden='true'></span> List View").on("click", (function(_this) {
+        return function() {
+          d3.event.preventDefault();
+          _this.arrayToolbar.text("");
+          _this.arrayContentTable.text("");
+          return _this.updateArraySchemaList(keyStats, array);
+        };
+      })(this));
+      keys = _.pluck(keyStats, "key");
+      thead = this.arrayContentTable.append("thead");
+      titleRow = thead.append("tr");
+      dismissRow = thead.append("tr");
+      tbody = this.arrayContentTable.append("tbody");
+      rows = tbody.selectAll("tr").data(array).enter().append("tr");
+      rows.append("th").append("a").attr("href", "#").text(function(d, i) {
+        return i + 1;
+      }).on("click", function(d, i) {
+        d3.event.preventDefault();
+        return bangJsonView.model.navigateToArrayElement(i);
+      });
+      rows.each(function(element, i) {
+        var currentRow;
+        currentRow = d3.select(this);
+        return currentRow.selectAll("td[data-key]").data(keys).enter().append("td").attr("data-key", function(key) {
+          return key;
+        }).attr("data-value", function(key) {
+          return element[key];
+        }).html(function(key) {
+          if (element[key] instanceof Object) {
+            return prettyPrint(element[key], true);
+          } else {
+            return element[key] || "(null)";
+          }
+        });
+      });
+      sortHelper = function(iconSpan, field) {
+        var iconClass, sortDescription;
+        iconSpan.parents("tr").find(".sortable .glyphicon").removeClass("glyphicon-sort glyphicon-sort-by-alphabet-alt glyphicon-sort-by-alphabet");
+        if (iconSpan.attr("aria-sort") === "ascending") {
+          sortDescription = "descending";
+          iconClass = "glyphicon-sort-by-alphabet-alt";
+        } else {
+          sortDescription = "ascending";
+          iconClass = "glyphicon-sort-by-alphabet";
+        }
+        iconSpan.attr("aria-sort", sortDescription).addClass(iconClass);
+        return rows.sort(function(a, b) {
+          return d3[sortDescription](a[field] || "(null)", b[field] || "(null)");
+        });
+      };
+      titleRow.append("th").text("Index");
+      titleRow.selectAll("th[data-key]").data(keys).enter().append("th").attr("class", "sortable").attr("data-key", function(key) {
+        return key;
+      }).call(function(header) {
+        header.append("span").text(function(key) {
+          return key;
+        });
+        return header.append("span").attr("class", "glyphicon glyphicon-sort");
+      }).on("click", function(key) {
+        return sortHelper($(this).find(".glyphicon"), key);
+      });
+      dismissRow.append("td");
+      return dismissRow.selectAll("td[data-key]").data(keys).enter().append("td").attr("data-key", function(key) {
+        return key;
+      }).append("small").attr("class", "glyphicon glyphicon-eye-close dismiss").attr("title", "dismiss").on("click", function(key) {
+        thead.selectAll("td[data-key='" + key + "'], th[data-key='" + key + "'").remove();
+        return rows.selectAll("td[data-key='" + key + "']").remove();
+      });
     };
 
     BangJsonView.prototype.clear = function() {
@@ -533,7 +613,7 @@
     chrome.runtime.sendMessage({
       stage: "load"
     });
-    root = d3.select("body").text("").append("div").attr("class", "container");
+    root = d3.select("body").text("").append("div").attr("class", "container-fluid");
     renderHeader(root.append("div").attr("class", "navbar navbar-default"));
     queryRow = root.append("div").attr("class", "row");
     responseRow = root.append("div").attr("class", "row");
@@ -702,7 +782,7 @@
   renderQueryParameters = function() {
     var parameterDiv;
     $("#refreshLink").attr("href", bangUri.href());
-    $("#search").text(bangUri.search() || "(none)");
+    $("#search").text(bangUri.search() || "(null)");
     parameterDiv = d3.select("#queryParameters").text("").selectAll("div.form-group").data(_.pairs(bangUri.search(true))).enter().append("div").attr("class", "form-group has-feedback queryParameter").attr("data-key", function(_arg) {
       var key;
       key = _arg[0];
@@ -758,7 +838,7 @@
       divToUpdate.siblings(".form-control-feedback").hide();
       divToUpdate.parent().parent().removeClass("has-warning");
     }
-    $("#search").text(bangUri.search() || "(none)");
+    $("#search").text(bangUri.search() || "(null)");
     return $("#refreshLink").attr("href", bangUri.href());
   };
 
@@ -809,7 +889,7 @@
       result = eval(query);
       if (result === void 0) {
         return {
-          error: "(undefined)"
+          error: "(null)"
         };
       } else {
         return {
