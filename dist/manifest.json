@@ -34,5 +34,8 @@
     "lib/bootstrap/bootstrap.css",
     "lib/bang.css",
     "lib/fonts/glyphicons-halflings-regular.woff"
-  ]
+  ],
+  "background": {
+    "scripts": ["src/background.js"]
+  }
 }

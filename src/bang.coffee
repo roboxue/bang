@@ -365,9 +365,7 @@ class BangJsonView extends Backbone.View
 
 render = ->
   console.log "Bang will make your life with JSON easier!"
-  _gaq = _gaq || [];
-  _gaq.push(['_setAccount', 'UA-59100802-1']);
-  _gaq.push(['_trackPageview']);
+  chrome.runtime.sendMessage {stage: "load"}
   root = d3.select("body").text("").append("div").attr("class", "container")
   renderHeader root.append("div").attr("class", "navbar navbar-default")
   queryRow = root.append("div").attr("class", "row")
@@ -702,18 +700,6 @@ load = ->
     console.log "Document not valid json, bang will not work: #{ex}"
     console.log "Bang can't work on HTML and XML pages"
     return
-  loadGoogleAnalytics()
   render()
-
-loadGoogleAnalytics = ->
-  ga = document.createElement('script')
-  ga.type = 'text/javascript'
-  ga.async = true
-  ga.src = 'https://ssl.google-analytics.com/ga.js'
-  if document.getElementsByTagName('script').length > 0
-    s = document.getElementsByTagName('script')[0]
-    s.parentNode.insertBefore(ga, s)
-  else
-    document.body.appendChild(ga)
 
 load()
