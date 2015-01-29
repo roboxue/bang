@@ -414,7 +414,7 @@ class BangJsonView extends Backbone.View
         if element[key] instanceof Object
           prettyPrint(element[key], true)
         else
-          element[key] or "(null)"
+          if element[key]? then element[key].toString() else "(null)"
       )
     sortHelper = (iconSpan, field)->
       iconSpan.parents("tr").find(".sortable .glyphicon").removeClass("glyphicon-sort glyphicon-sort-by-alphabet-alt glyphicon-sort-by-alphabet")
@@ -425,8 +425,10 @@ class BangJsonView extends Backbone.View
         sortDescription = "ascending"
         iconClass = "glyphicon-sort-by-alphabet"
       iconSpan.attr("aria-sort", sortDescription).addClass(iconClass)
+      getter = (data)->
+        if data[field]? then data[field].toString() else "(null)"
       rows.sort((a,b)->
-        d3[sortDescription](a[field] or "(null)", b[field] or "(null)")
+        d3[sortDescription](getter(a), getter(b))
       )
     titleRow.append("th").text("Index")
     titleRow.selectAll("th[data-key]").data(keys).enter().append("th").attr("class", "sortable").attr("data-key", (key)-> key).call((header)->
@@ -641,7 +643,7 @@ renderUri = (root)->
 
 renderQueryParameters = ->
   $("#refreshLink").attr("href", bangUri.href())
-  $("#search").text bangUri.search() or "(null)"
+  $("#search").text bangUri.search() or "(no query string)"
   parameterDiv = d3.select("#queryParameters").text("").selectAll("div.form-group").data(_.pairs(bangUri.search(true))).enter()
   .append("div").attr("class", "form-group has-feedback queryParameter").attr("data-key", ([key])-> key)
   parameterDiv.append("label").attr("class", "control-label col-sm-offset-2 col-sm-2").attr("for", ([key])-> "query#{key}").text(([key])-> key)
@@ -669,7 +671,7 @@ updateUri = (divToUpdate, toggleOn)->
   else
     divToUpdate.siblings(".form-control-feedback").hide()
     divToUpdate.parent().parent().removeClass("has-warning")
-  $("#search").text bangUri.search() or "(null)"
+  $("#search").text bangUri.search() or "(no query string)"
   $("#refreshLink").attr("href", bangUri.href())
 
 renderQuery = (root)->
@@ -704,7 +706,7 @@ runQuery = (query)->
   try
     result = eval query
     if result is undefined
-      return {error: "(null)"}
+      return {error: "(undefined)"}
     else
       return {result}
   catch ex

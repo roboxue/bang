@@ -3,7 +3,7 @@
   "description": "Frontend RESTful endpoint workspace",
   "repository": "git@github.com:roboxue/Bang.git",
   "author": "Robert Xue",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "devDependencies": {
     "grunt": "^0.4.5",
     "grunt-bower-task": "^0.4.0",

@@ -589,12 +589,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
           if (element[key] instanceof Object) {
             return prettyPrint(element[key], true);
           } else {
-            return element[key] || "(null)";
+            if (element[key] != null) {
+              return element[key].toString();
+            } else {
+              return "(null)";
+            }
           }
         });
       });
       sortHelper = function(iconSpan, field) {
-        var iconClass, sortDescription;
+        var getter, iconClass, sortDescription;
         iconSpan.parents("tr").find(".sortable .glyphicon").removeClass("glyphicon-sort glyphicon-sort-by-alphabet-alt glyphicon-sort-by-alphabet");
         if (iconSpan.attr("aria-sort") === "ascending") {
           sortDescription = "descending";
@@ -604,8 +608,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
           iconClass = "glyphicon-sort-by-alphabet";
         }
         iconSpan.attr("aria-sort", sortDescription).addClass(iconClass);
+        getter = function(data) {
+          if (data[field] != null) {
+            return data[field].toString();
+          } else {
+            return "(null)";
+          }
+        };
         return rows.sort(function(a, b) {
-          return d3[sortDescription](a[field] || "(null)", b[field] || "(null)");
+          return d3[sortDescription](getter(a), getter(b));
         });
       };
       titleRow.append("th").text("Index");
@@ -817,7 +828,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   renderQueryParameters = function() {
     var parameterDiv;
     $("#refreshLink").attr("href", bangUri.href());
-    $("#search").text(bangUri.search() || "(null)");
+    $("#search").text(bangUri.search() || "(no query string)");
     parameterDiv = d3.select("#queryParameters").text("").selectAll("div.form-group").data(_.pairs(bangUri.search(true))).enter().append("div").attr("class", "form-group has-feedback queryParameter").attr("data-key", function(_arg) {
       var key;
       key = _arg[0];
@@ -873,7 +884,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
       divToUpdate.siblings(".form-control-feedback").hide();
       divToUpdate.parent().parent().removeClass("has-warning");
     }
-    $("#search").text(bangUri.search() || "(null)");
+    $("#search").text(bangUri.search() || "(no query string)");
     return $("#refreshLink").attr("href", bangUri.href());
   };
 
@@ -924,7 +935,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
       result = eval(query);
       if (result === void 0) {
         return {
-          error: "(null)"
+          error: "(undefined)"
         };
       } else {
         return {
