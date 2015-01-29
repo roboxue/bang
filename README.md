@@ -2,7 +2,9 @@
 
 Frontend JSON workspace, a Chrome extension
 
-*v0.1.1 Release*
+[Chrome Store](https://chrome.google.com/webstore/detail/bang/dfmpfciemnocjnpfddbefbhhamhjcmgl)
+
+*v0.1.3 Release*
 
 Hightlights:
 
