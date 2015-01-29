@@ -4,9 +4,7 @@
   "name": "Bang",
   "version": "0.1.3",
   "icons": {
-    "32": "bang@32.png",
-    "64": "bang@64.png",
-    "128": "bang@128.png"
+    "128": "bang.png"
   },
 
   "description": "Frontend JSON workspace",
