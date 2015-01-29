@@ -1,5 +1,5 @@
 var _gaq = _gaq || [];
-_gaq.push(['_setAccount', 'UA-59100802-1']);
+_gaq.push(['_setAccount', 'UA-XXXXXXXX-X']);
 
 (function() {
     var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
@@ -15,5 +15,3 @@ chrome.runtime.onMessage.addListener(
             _gaq.push(['_trackEvent', 'CustomQuery', 'Execute'])
     }
 );
-
-var secret = 1;

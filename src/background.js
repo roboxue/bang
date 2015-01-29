@@ -15,5 +15,3 @@ chrome.runtime.onMessage.addListener(
             _gaq.push(['_trackEvent', 'CustomQuery', 'Execute'])
     }
 );
-
-var secret = 1;
