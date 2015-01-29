@@ -9,11 +9,10 @@ _gaq.push(['_setAccount', 'UA-59100802-1']);
 
 chrome.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
-        console.log(sender.tab ?
-        "from a content script:" + sender.tab.url :
-            "from the extension");
         if (request.stage == "load")
-            _gaq.push(['_trackPageview']);
+            _gaq.push(['_trackPageview', '/v0.1.5']);
+        else if (request.stage == "query")
+            _gaq.push(['_trackEvent', 'CustomQuery', 'Execute'])
     }
 );
 

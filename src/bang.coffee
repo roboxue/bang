@@ -680,6 +680,7 @@ renderQuery = (root)->
   renderQueryForm root.append("div").attr("class", "panel-body")
 
 didRunQuery = ->
+  chrome.runtime.sendMessage {stage: "query"}
   query = $("#query").val()
   bangJsonView.clear()
   { error, result } = runQuery query

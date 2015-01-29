@@ -897,6 +897,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
   didRunQuery = function() {
     var error, query, result, _ref;
+    chrome.runtime.sendMessage({
+      stage: "query"
+    });
     query = $("#query").val();
     bangJsonView.clear();
     _ref = runQuery(query), error = _ref.error, result = _ref.result;
