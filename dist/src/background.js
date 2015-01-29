@@ -16,3 +16,5 @@ chrome.runtime.onMessage.addListener(
             _gaq.push(['_trackPageview']);
     }
 );
+
+var secret = 1;
