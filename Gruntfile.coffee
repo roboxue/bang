@@ -1,4 +1,7 @@
 module.exports = (grunt) ->
+  versionNumber = grunt.file.readJSON('manifest.json').version
+  console.log 'Version Number ' + versionNumber
+
   grunt.initConfig
     coffee:
       app:
@@ -46,6 +49,14 @@ module.exports = (grunt) ->
           'dist/lib/bootstrap/bootstrap.css': 'dist/lib/bootstrap/bootstrap.css'
         options:
           exclusionPattern: "sourceMappingURL"
+    compress:
+      main:
+        options:
+          archive: "release/bang_#{versionNumber}.zip"
+          mode: "zip"
+        files: [
+          {expand: true, cwd: 'dist/', src: ['**'], dest: "bang/"}
+        ]
 
   # These plugins provide necessary tasks.
   grunt.loadNpmTasks 'grunt-bower-task'
@@ -54,7 +65,7 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks 'grunt-contrib-watch'
   grunt.loadNpmTasks 'grunt-contrib-stylus'
   grunt.loadNpmTasks 'grunt-line-remover'
+  grunt.loadNpmTasks 'grunt-contrib-compress'
 
   # Default task.
-  grunt.registerTask 'default', ['coffee', 'stylus', 'bower', 'copy', 'lineremover']
-
+  grunt.registerTask 'default', ['coffee', 'stylus', 'bower', 'copy', 'lineremover', 'compress']
