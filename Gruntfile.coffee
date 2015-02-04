@@ -4,18 +4,18 @@ module.exports = (grunt) ->
 
   grunt.initConfig
     clean:
-      app: ['bower_components', 'lib', 'dist', 'release']
+      app: ['lib', 'dist', 'release']
       test: ['test/client.test.js']
     bower:
       install:
         options:
-          targetDir: './lib',
-          layout: 'byType',
-          install: true,
-          verbose: false,
-          cleanTargetDir: false,
-          cleanBowerDir: false,
-          bowerOptions: {}
+          targetDir: './lib'
+          install: true
+          verbose: false
+          cleanTargetDir: true
+          cleanBowerDir: false
+          bowerOptions:
+            production: true
     coffee:
       app:
         options:

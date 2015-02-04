@@ -27,7 +27,7 @@
   "web_accessible_resources": [
     "lib/bootstrap/bootstrap.css",
     "lib/bang.css",
-    "lib/fonts/glyphicons-halflings-regular.woff"
+    "lib/fonts/*"
   ],
   "background": {
     "scripts": ["src/background.js"]
