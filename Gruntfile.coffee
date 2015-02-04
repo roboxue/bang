@@ -3,6 +3,9 @@ module.exports = (grunt) ->
   console.log 'Version Number ' + versionNumber
 
   grunt.initConfig
+    clean:
+      app: ['bower_components', 'lib', 'dist', 'release']
+      test: ['test/client.test.js']
     bower:
       install:
         options:
@@ -66,6 +69,7 @@ module.exports = (grunt) ->
           {src: 'lib/bootstrap/glyphicons-halflings-regular.svg', dest: 'dist/lib/fonts/glyphicons-halflings-regular.svg'}
           {src: 'lib/bootstrap/glyphicons-halflings-regular.ttf', dest: 'dist/lib/fonts/glyphicons-halflings-regular.ttf'}
           {src: 'lib/bootstrap/glyphicons-halflings-regular.woff', dest: 'dist/lib/fonts/glyphicons-halflings-regular.woff'}
+          {src: 'lib/bootstrap/glyphicons-halflings-regular.woff2', dest: 'dist/lib/fonts/glyphicons-halflings-regular.woff2'}
           {src: ['manifest.json'], dest: 'dist/'}
           {src: ['src/background.js', 'lib/lib.min.js', 'lib/bang.js'], dest: 'dist/'}
         ]
@@ -99,6 +103,7 @@ module.exports = (grunt) ->
 
   # These plugins provide necessary tasks.
   grunt.loadNpmTasks 'grunt-bower-task'
+  grunt.loadNpmTasks 'grunt-contrib-clean'
   grunt.loadNpmTasks 'grunt-contrib-coffee'
   grunt.loadNpmTasks 'grunt-contrib-compress'
   grunt.loadNpmTasks 'grunt-contrib-concat'
@@ -110,5 +115,6 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks 'grunt-open'
 
   # Default task.
-  grunt.registerTask 'default', ['bower', 'coffee:app', 'stylus', 'concat', 'uglify', 'copy', 'lineremover', 'compress']
-  grunt.registerTask 'testClient', ['bower', 'coffee:testClient', 'stylus', 'concat', 'uglify', 'copy', 'open:test']
+  grunt.registerTask 'default', ['clean:app', 'bower', 'coffee:app', 'stylus', 'concat', 'uglify', 'copy', 'lineremover', 'compress']
+  grunt.registerTask 'buildTest', ['clean', 'bower', 'coffee', 'stylus', 'concat', 'uglify', 'copy']
+  grunt.registerTask 'testClient', ['clean', 'bower', 'coffee', 'stylus', 'concat', 'uglify', 'copy', 'open:test']
