@@ -5,11 +5,16 @@ module.exports = (grunt) ->
   grunt.initConfig
     coffee:
       app:
-        expand: true
-        cwd: 'src'
-        src: ['**/*.coffee']
-        dest: 'lib'
-        ext: '.js'
+        options:
+          bare: true
+          join: true
+        files:
+          'lib/bang.js': [
+            'src/models/*.coffee'
+            'src/collections/*.coffee'
+            'src/views/*.coffee'
+            'src/bang.coffee'
+          ]
     stylus:
       compile:
         files:
