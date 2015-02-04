@@ -1,7 +1,7 @@
 lib/
 bower_components/
 release/
-
+test/*.js
 
 # Created by .ignore support plugin (hsz.mobi)
 ### Node template

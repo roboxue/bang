@@ -19,12 +19,7 @@
   "content_security_policy": "script-src 'self' https://ssl.google-analytics.com; object-src 'self'",
   "content_scripts": [ {
     "js": [
-      "lib/jquery/jquery.js",
-      "lib/d3/d3.js",
-      "lib/bootstrap/bootstrap.js",
-      "lib/underscore/underscore.js",
-      "lib/backbone/backbone.js",
-      "lib/URIjs/URI.js",
+      "lib/lib.min.js",
       "lib/bang.js"
     ],
     "matches": [ "<all_urls>" ]
