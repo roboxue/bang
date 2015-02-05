@@ -16,6 +16,13 @@ module.exports = (grunt) ->
           cleanBowerDir: false
           bowerOptions:
             production: true
+    mustache:
+      app:
+        src: 'src/templates/'
+        dest: 'lib/templates.js'
+        options:
+          prefix: 'bangTemplates = '
+          postfix: ';'
     coffee:
       app:
         options:
@@ -28,6 +35,7 @@ module.exports = (grunt) ->
             'src/views/*.coffee'
             'src/bang.coffee'
           ]
+          'lib/milk/milk.js': 'node_modules/milk/milk.coffee'
       testClient:
         options:
           bare: true
@@ -44,12 +52,14 @@ module.exports = (grunt) ->
       library:
         files:
           'lib/lib.js': [
-            "lib/jquery/jquery.js",
-            "lib/d3/d3.js",
-            "lib/bootstrap/bootstrap.js",
-            "lib/underscore/underscore.js",
-            "lib/backbone/backbone.js",
+            "lib/jquery/jquery.js"
+            "lib/d3/d3.js"
+            "lib/bootstrap/bootstrap.js"
+            "lib/underscore/underscore.js"
+            "lib/backbone/backbone.js"
             "lib/URIjs/URI.js"
+            "lib/milk/milk.js"
+            "lib/templates.js"
           ]
       source:
         options:
@@ -112,9 +122,10 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks 'grunt-contrib-uglify'
   grunt.loadNpmTasks 'grunt-contrib-watch'
   grunt.loadNpmTasks 'grunt-line-remover'
+  grunt.loadNpmTasks 'grunt-mustache'
   grunt.loadNpmTasks 'grunt-open'
 
   # Default task.
-  grunt.registerTask 'default', ['clean:app', 'bower', 'coffee:app', 'stylus', 'concat', 'uglify', 'copy', 'lineremover', 'compress']
-  grunt.registerTask 'buildTest', ['clean', 'bower', 'coffee', 'stylus', 'concat', 'uglify', 'copy']
-  grunt.registerTask 'testClient', ['clean', 'bower', 'coffee', 'stylus', 'concat', 'uglify', 'copy', 'open:test']
+  grunt.registerTask 'default', ['clean:app', 'bower', 'mustache', 'coffee:app', 'stylus', 'concat', 'uglify', 'copy', 'lineremover', 'compress']
+  grunt.registerTask 'buildTest', ['clean', 'bower', 'mustache', 'coffee', 'stylus', 'concat', 'uglify', 'copy']
+  grunt.registerTask 'testClient', ['clean', 'bower', 'mustache', 'coffee', 'stylus', 'concat', 'uglify', 'copy', 'open:test']

@@ -20,11 +20,13 @@
     "grunt-contrib-uglify": "^0.7.0",
     "grunt-contrib-watch": "*",
     "grunt-line-remover": "0.0.2",
+    "grunt-mustache": "^0.1.7",
     "grunt-open": "^0.2.3",
     "mocha": "^2.1.0"
   },
   "dependencies": {
-    "coffee-script": "^1.9.0"
+    "coffee-script": "^1.9.0",
+    "milk": "^1.2.0"
   },
   "scripts": {
     "build": "npm install && grunt",

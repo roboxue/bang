@@ -36,6 +36,7 @@ bangUri = null
 originBangUri = null
 queryResult = null
 bangJsonView = null
+bangQueryPanelView = null
 originBody = null
 
 render = ->
@@ -50,7 +51,10 @@ render = ->
     el: queryRow.append("div").attr("class", "col-lg-12 col-md-12 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-default panel-primary").attr("id", "navigatorPanel").node()
   }
   bangJsonView.render()
-  renderQuery queryRow.append("div").attr("class", "col-lg-12 col-md-12 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-default").attr("id", "queryPanel")
+  bangQueryPanelView = new BangQueryPanelView {
+    el: queryRow.append("div").attr("class", "col-lg-12 col-md-12 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-default").attr("id", "queryPanel").node()
+  }
+  bangQueryPanelView.render()
   renderResponse responseRow.append("div").attr("class", "col-lg-12 col-md-12 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-success")
   $(".panel-heading")
   $(".panel-toggle").click (ev)->
@@ -261,11 +265,6 @@ updateUri = (divToUpdate, toggleOn)->
   $("#search").text bangUri.search() or "(no query string)"
   $("#refreshLink").attr("href", bangUri.href())
 
-renderQuery = (root)->
-  header = root.append("div").attr("class", "panel-heading")
-  header.append("span").attr("class", "panel-title").html("Custom JavaScript Query")
-  renderQueryForm root.append("div").attr("class", "panel-body")
-
 didRunQuery = ->
   chrome.runtime.sendMessage {stage: "query"}
   query = $("#query").val()
@@ -308,25 +307,6 @@ getPathFragmentForKey = (data, key)->
       return new BangJsonPathFragment { fragment: key + "[]" }
   else
     return new BangJsonPathFragment {fragment: key }
-
-renderQueryForm = (root)->
-  root.html("""
-<div class="form-horizontal">
-  <div class="form-group">
-    <label for="query" class="col-sm-2 control-label">Query</label>
-    <div class="col-sm-10">
-      <textarea class="form-control" id="query" placeholder="Any Javascript Expression!"></textarea>
-      <span id="helpBlock" class="help-block">Supports native Javascript, <a href="http://jquery.com">jQuery</a>, <a href="http://d3js.org">d3.js</a>, <a href="http://underscorejs.org">underscore.js</a>, <a href="http://backbonejs.org">backbone.js</a></span>
-    </div>
-  </div>
-  <div class="form-group">
-    <div class="col-sm-offset-2 col-sm-10">
-      <button type="submit" class="btn btn-default" id="runQuery">Run it!</button>
-      <button type="reset" class="btn btn-default" id="reset">Reset</button>
-    </div>
-  </div>
-</div>
-""")
 
 stringifyPadingSize = 4
 
