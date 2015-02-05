@@ -114,21 +114,21 @@ class BangJsonView extends Backbone.View
           d3.event.preventDefault()
           path.navigateTo i
 
-  updateArrayNavigator: ([arrayName, arrayIndex])->
+  updateArrayNavigator: ({arrayName, index})->
     pager = @indexSelectorDiv.append("nav").append("ul").attr("class", "pager")
     query = bangJsonView.model.getQuery bangJsonView.model.slice(0, bangJsonView.model.length - 1).concat(new BangJsonPathFragment({fragment: arrayName + "[]"}))
     maxLength = eval(query).length
-    if arrayIndex > 0
+    if index > 0
       pager.append("li").attr("class", "previous").append("a").attr("href", "#").html("&larr;Previous").on "click", ->
         d3.event.preventDefault()
-        bangJsonView.model.navigateToArrayElement arrayIndex - 1
+        bangJsonView.model.navigateToArrayElement index - 1
     else
       pager.append("li").attr("class", "previous disabled").append("a").attr("href", "#").html("&larr;Previous")
-    pager.append("li").html("#{arrayIndex + 1} / #{maxLength}")
-    if arrayIndex < maxLength - 1
+    pager.append("li").html("#{index + 1} / #{maxLength}")
+    if index < maxLength - 1
       pager.append("li").attr("class", "next").append("a").attr("href", "#").html("Next&rarr;").on "click", ->
         d3.event.preventDefault()
-        bangJsonView.model.navigateToArrayElement arrayIndex + 1
+        bangJsonView.model.navigateToArrayElement index + 1
     else
       pager.append("li").attr("class", "next disabled").append("a").attr("href", "#").html("Next&rarr;")
 

@@ -33,13 +33,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###
 
 class BangJsonPathFragment extends Backbone.Model
+  keyRx = /(^|^countBy|^countByType):(.+)$/
+  arrayRx = /^(.+)\[]$/
+  arrayElementRx = /^(.+)\[(\d+)]$/
+  arrayAndArrayElementRx = /^(.+)\[\d*]$/
+  keyRx = /(^|^countBy|^countByType):(.+)$/
+
   getQueryFragment: ->
     # return valid javascript json navigation code fragment
     # if the pathFragment is in the form of 'array[]', return 'array'
     # if the pathFragment is in the form of '(method):key', return an udnerscore expression
     # else, return as is. eg. 'array[1]' -> 'array[1]'
-    arrayRx = /^(.+)\[]$/
-    keyRx = /(^|^countBy|^countByType):(.+)$/
     type = @getFragmentType()
     switch type
       when "ArrayRoot"
@@ -55,9 +59,6 @@ class BangJsonPathFragment extends Backbone.Model
         { value: @get("fragment") }
 
   getFragmentType: ->
-    arrayRx = /^(.+)\[]$/
-    arrayElementRx = /^(.+)\[(\d+)]$/
-    keyRx = /(^|^countBy|^countByType):(.+)$/
     if arrayRx.test @get("fragment")
       "ArrayRoot"
     else if arrayElementRx.test @get("fragment")
@@ -68,16 +69,14 @@ class BangJsonPathFragment extends Backbone.Model
       "Value"
 
   getArrayKeyName: ->
-    keyRx = /(^|^countBy|^countByType):(.+)$/
     if keyRx.test @get("fragment")
       [fullExpression, method, keyName] = @get("fragment").match keyRx
       {method, keyName}
 
   getArrayIndex: ->
-    arrayElementRx = /^(.+)\[(\d+)]$/
     if arrayElementRx.test @get("fragment")
-      [fullExpression, keyName, arrayIndex] = @get("fragment").match arrayElementRx
-      [keyName, parseInt(arrayIndex)]
+      [fullExpression, arrayName, arrayIndex] = @get("fragment").match arrayElementRx
+      { arrayName, index: parseInt(arrayIndex) }
 
   getDisplayName: ->
     @get("fragment")
@@ -87,10 +86,8 @@ class BangJsonPathFragment extends Backbone.Model
     # if the pathFragment is in the form of 'array[0]', return 'array[]'
     # if the pathFragment is in the form of 'helper:key', return ':key'
     # else, return null
-    arrayRx = /^(.+)\[(\d+)]$/
-    keyRx = /(^|^countBy|^countByType):(.+)$/
-    if arrayRx.test @get("fragment")
-      [fullName, arrayName] = @get("fragment").match arrayRx
+    if arrayElementRx.test @get("fragment")
+      [fullName, arrayName] = @get("fragment").match arrayElementRx
       arrayName + "[]"
     else if keyRx.test @get("fragment")
       [fullExpression, method, keyName] = @get("fragment").match keyRx
@@ -98,9 +95,8 @@ class BangJsonPathFragment extends Backbone.Model
 
   getArrayFragment: (index)->
     # Determine the javascript json navigation code fragment for array element
-    # if the pathFragment is in the form of 'array[]', return 'array[i]'
+    # if the pathFragment is in the form of 'array[]' or 'array[1]', return 'array[i]'
     # else, return null
-    arrayRx = /^(.+)\[\d*]$/
-    if arrayRx.test @get("fragment")
-      [fullName, arrayName] = @get("fragment").match arrayRx
+    if arrayAndArrayElementRx.test @get("fragment")
+      [fullName, arrayName] = @get("fragment").match arrayAndArrayElementRx
       arrayName + "[#{index}]"
