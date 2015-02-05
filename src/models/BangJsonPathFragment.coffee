@@ -42,7 +42,7 @@ class BangJsonPathFragment extends Backbone.Model
   getQueryFragment: ->
     # return valid javascript json navigation code fragment
     # if the pathFragment is in the form of 'array[]', return 'array'
-    # if the pathFragment is in the form of '(method):key', return an udnerscore expression
+    # if the pathFragment is in the form of '(method):key', return an underscore expression
     # else, return as is. eg. 'array[1]' -> 'array[1]'
     type = @getFragmentType()
     switch type
@@ -53,7 +53,7 @@ class BangJsonPathFragment extends Backbone.Model
         [fullExpression, method, keyName] = @get("fragment").match keyRx
         switch method
           when "countBy" then { underscore: "countBy('#{keyName}')" }
-          when "countByType" then { underscore: "countBy(function(row){return typeof row['#{keyName}']})" }
+          when "countByType" then { underscore: "countBy(function(row){ return typeof row['#{keyName}']; })" }
           else { underscore: "pluck('#{keyName}')" }
       else
         { value: @get("fragment") }

@@ -1,16 +1,16 @@
 describe 'BangJsonPathFragment', ->
-  verifyOutputDeepEqualsExpectedValue = (testMethod)->
+  verifyOutputDeepEqualsExpectedValue = (methodToTest)->
     (expectedOutput, input, params...)->
       fragment = new BangJsonPathFragment { fragment: input}
-      expect(fragment[testMethod](params)).to.deep.equal(expectedOutput)
-  verifyOutputNotDeepEqualsExpectedValue = (testMethod)->
+      expect(fragment[methodToTest](params)).to.deep.equal(expectedOutput)
+  verifyOutputNotDeepEqualsExpectedValue = (methodToTest)->
     (expectedOutput, input, params...)->
       fragment = new BangJsonPathFragment { fragment: input}
-      expect(fragment[testMethod](params)).to.not.deep.equal(expectedOutput)
-  verifyOutputIsUndefined = (testMethod)->
+      expect(fragment[methodToTest](params)).to.not.deep.equal(expectedOutput)
+  verifyOutputIsUndefined = (methodToTest)->
     (input, params...)->
       fragment = new BangJsonPathFragment { fragment: input}
-      expect(fragment[testMethod](params)).to.be.undefined
+      expect(fragment[methodToTest](params)).to.be.undefined
 
   it 'should be globally visible', ->
     expect(BangJsonPathFragment).to.exist()
@@ -30,7 +30,7 @@ describe 'BangJsonPathFragment', ->
       verifier { underscore: "countBy('key')" }, "countBy:key"
 
     it 'returns an underscore expression for query fragment like "countByType:key"', ->
-      verifier { underscore: "countBy(function(row){return typeof row['key']})" }, "countByType:key"
+      verifier { underscore: "countBy(function(row){ return typeof row['key']; })" }, "countByType:key"
 
     it 'returns an underscore pluck expression for query fragment like ":key"', ->
       verifier { underscore: "pluck('key')" }, ":key"

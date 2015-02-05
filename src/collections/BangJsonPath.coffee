@@ -39,11 +39,14 @@ class BangJsonPath extends Backbone.Collection
     if option and option.baseExpression
       @baseExpression = option.baseExpression
     else
-      @baseExpression = models[0].get("fragment")
+      @baseExpression = models[0].getDisplayName()
 
+  # Connect each PathFragment in the array to form a valid javascript expression. Wrap with underscore chain function if some query fragment needs an underscore function
+  # Path: optional BangJsonPathFragment array. If path is provided, getQuery will work on this array. Otherwise will be applied onto itself
+  # For Display: If set to true, Use base expression as the first component in the query. Otherwise use the value of first component
   getQuery: (path, forDisplay)->
     underscoreWrapped = false
-    reducer = ((pv, cv, index, array)->
+    reducer = ((pv, cv, index)->
       if index is 0
         return pv or cv.getQueryFragment().value
       if cv.getFragmentType() is "Value"
@@ -66,12 +69,15 @@ class BangJsonPath extends Backbone.Collection
     else
       toReturn
 
+  # Navigation back to the index-th fragment
   navigateTo: (index)->
     while @models.length > Math.max(index + 1, 0)
       @pop()
     @trigger "path:update"
+    return this
 
   navigateToArrayElement: (index)->
     if arrayFragment = @last().getArrayFragment(index)
       @last().set "fragment", arrayFragment
       @trigger "path:update"
+    return this
