@@ -33,8 +33,8 @@ module.exports = (grunt) ->
             'src/models/*.coffee'
             'src/collections/*.coffee'
             'src/views/*.coffee'
-            'src/bang.coffee'
           ]
+          'lib/master.js': 'src/master.coffee'
           'lib/milk/milk.js': 'node_modules/milk/milk.coffee'
       testClient:
         options:
@@ -48,6 +48,12 @@ module.exports = (grunt) ->
       compile:
         files:
           'lib/bang.css': 'src/bang.styl'
+    lineremover:
+      excludeSourceMapping:
+        files:
+          'lib/bootstrap/bootstrap.css': 'lib/bootstrap/bootstrap.css'
+        options:
+          exclusionPattern: "sourceMappingURL"
     concat:
       library:
         files:
@@ -67,7 +73,7 @@ module.exports = (grunt) ->
         files:
           'lib/bang.js': 'lib/bang.js'
     uglify:
-      lib:
+      app:
         files:
           'lib/lib.min.js': 'lib/lib.js'
     copy:
@@ -81,14 +87,8 @@ module.exports = (grunt) ->
           {src: 'lib/bootstrap/glyphicons-halflings-regular.woff', dest: 'dist/lib/fonts/glyphicons-halflings-regular.woff'}
           {src: 'lib/bootstrap/glyphicons-halflings-regular.woff2', dest: 'dist/lib/fonts/glyphicons-halflings-regular.woff2'}
           {src: ['manifest.json'], dest: 'dist/'}
-          {src: ['src/background.js', 'lib/lib.min.js', 'lib/bang.js'], dest: 'dist/'}
+          {src: ['src/background.js', 'lib/lib.min.js', 'lib/bang.js', 'lib/master.js'], dest: 'dist/'}
         ]
-    lineremover:
-      excludeSourceMapping:
-        files:
-          'dist/lib/bootstrap/bootstrap.css': 'dist/lib/bootstrap/bootstrap.css'
-        options:
-          exclusionPattern: "sourceMappingURL"
     watch:
       app:
         files: ['src/**/*.coffee', 'manifest.json']
@@ -126,6 +126,6 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks 'grunt-open'
 
   # Default task.
-  grunt.registerTask 'default', ['clean:app', 'bower', 'mustache', 'coffee:app', 'stylus', 'concat', 'uglify', 'copy', 'lineremover', 'compress']
-  grunt.registerTask 'buildTest', ['clean', 'bower', 'mustache', 'coffee', 'stylus', 'concat', 'uglify', 'copy']
-  grunt.registerTask 'testClient', ['clean', 'bower', 'mustache', 'coffee', 'stylus', 'concat', 'uglify', 'copy', 'open:test']
+  grunt.registerTask 'default', ['clean:app', 'bower', 'mustache', 'coffee:app', 'stylus', 'lineremover', 'concat', 'uglify', 'copy', 'compress']
+  grunt.registerTask 'buildTest', ['clean', 'bower', 'mustache', 'coffee', 'stylus', 'lineremover', 'concat', 'copy']
+  grunt.registerTask 'testClient', ['clean', 'bower', 'mustache', 'coffee', 'stylus', 'lineremover', 'concat', 'copy', 'open:test']
