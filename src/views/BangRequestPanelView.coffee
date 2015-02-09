@@ -31,15 +31,15 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###
-queryStringBlockId = "uriSearch"
-queryStringListId = "queryParameters"
-newQueryParameterFormId = "addNewQueryParameter"
-keyInputId = "newKey"
-valueInputId = "newValue"
-refreshLinkId = "refreshLink"
-
 class BangRequestPanelView extends Backbone.View
   model: URI
+
+  initialize: ->
+    @queryStringBlockId = "uriSearch"
+    @queryStringListId = "queryParameters"
+    @keyInputId = "newKey"
+    @valueInputId = "newValue"
+    @refreshLinkId = "refreshLink"
 
   events:
     "change .form-group[data-key] input": "onUpdateUri"
@@ -48,9 +48,9 @@ class BangRequestPanelView extends Backbone.View
 
   render: (root)->
     root  = d3.select(@el)
+    @originQueryParam = @model.search(true)
     @renderHeader root.append("div").attr("class", "panel-heading")
     @renderRequestUri root.append("div").attr("class", "form-horizontal panel-footer").attr("id", "uri")
-    root.append("div").attr("class", "panel-body").style("display", "none").append("div").attr("id", "rawResponse")
 
   renderHeader: (header)->
     href = @model.href()
@@ -64,22 +64,20 @@ class BangRequestPanelView extends Backbone.View
       port: @model.port()
       path: @model.path()
       hash: @model.hash()
-      queryStringBlockId
-      queryStringListId
-      newQueryParameterFormId
-      keyInputId
-      valueInputId
-      refreshLinkId
+      queryStringBlockId: @queryStringBlockId
+      queryStringListId: @queryStringListId
+      keyInputId: @keyInputId
+      valueInputId: @valueInputId
+      refreshLinkId: @refreshLinkId
     }
-    @originQueryParam = @model.search(true)
     root.html window.Milk.render bangTemplates.BangRequestUri, page
     root.selectAll(".form-control-feedback").style("display", "none")
     @renderQueryParameters()
 
   renderQueryParameters: ->
-    $("#" + refreshLinkId).attr("href", @model.href())
-    $("#" + queryStringBlockId).text @model.search() or "(no query string)"
-    parameterDiv = d3.select("#" + queryStringListId).text("").selectAll("div.form-group").data(_.pairs(@model.search(true))).enter()
+    $("#" + @refreshLinkId).attr("href", @model.href())
+    $("#" + @queryStringBlockId).text @model.search() or "(no query string)"
+    parameterDiv = d3.select("#" + @queryStringListId).text("").selectAll("div.form-group").data(_.pairs(@model.search(true))).enter()
     .append("div").attr("class", "form-group has-feedback queryParameter").attr("data-key", ([key])-> key)
     parameterDiv.append("label").attr("class", "control-label col-sm-offset-2 col-sm-2").attr("for", ([key])-> "query#{key}").text(([key])-> key)
     inputDiv = parameterDiv.append("div").attr("class", "col-sm-7")
@@ -108,30 +106,30 @@ class BangRequestPanelView extends Backbone.View
     @model[key](valueToSet)
     @updateUri $(ev.currentTarget), (value and value isnt defaultValue)
 
-  updateUri: (divToUpdate, toggleOn)->
-    if toggleOn
+  updateUri: (divToUpdate, showFeedbackIcon)->
+    if showFeedbackIcon
       divToUpdate.siblings(".form-control-feedback").show()
       divToUpdate.parent().parent().addClass("has-warning")
     else
       divToUpdate.siblings(".form-control-feedback").hide()
       divToUpdate.parent().parent().removeClass("has-warning")
-    $("#" + queryStringBlockId).text @model.search() or "(no query string)"
-    $("#" + refreshLinkId).attr("href", @model.href())
+    $("#" + @queryStringBlockId).text @model.search() or "(no query string)"
+    $("#" + @refreshLinkId).attr("href", @model.href())
 
   onToggleQueryStringDetail: ->
-    $("#" + queryStringListId).toggle()
+    $("#" + @queryStringListId).toggle()
 
   onAddNewQueryParameter: ->
-    newKey = $("#" + keyInputId).val()
+    newKey = $("#" + @keyInputId).val()
     if newKey
-      $("#" + keyInputId).parent().removeClass("has-error")
+      $("#" + @keyInputId).parent().removeClass("has-error")
     else
-      return $("#" + keyInputId).parent().addClass("has-error")
-    newValue = $("#" + valueInputId).val()
+      return $("#" + @keyInputId).parent().addClass("has-error")
+    newValue = $("#" + @valueInputId).val()
     if newValue
       @model.addSearch(newKey, newValue)
     else
       @model.addSearch(newKey)
     @renderQueryParameters()
-    $("#" + keyInputId).val("")
-    $("#" + valueInputId).val("")
+    $("#" + @keyInputId).val("")
+    $("#" + @valueInputId).val("")

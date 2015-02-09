@@ -39,6 +39,15 @@ class BangJsonPathFragment extends Backbone.Model
   arrayAndArrayElementRx = /^(.+)\[\d*]$/
   keyRx = /(^|^countBy|^countByType):(.+)$/
 
+  getPathFragmentForKey: (data, key)->
+    if _.isArray data[key]
+      if data[key].length is 1
+        return new BangJsonPathFragment { fragment: key + "[0]" }
+      else
+        return new BangJsonPathFragment { fragment: key + "[]" }
+    else
+      return new BangJsonPathFragment {fragment: key }
+
   getQueryFragment: ->
     # return valid javascript json navigation code fragment
     # if the pathFragment is in the form of 'array[]', return 'array'

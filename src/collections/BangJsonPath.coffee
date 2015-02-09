@@ -73,11 +73,11 @@ class BangJsonPath extends Backbone.Collection
   navigateTo: (index)->
     while @models.length > Math.max(index + 1, 0)
       @pop()
-    @trigger "path:update"
+    @trigger "change:path"
     return this
 
   navigateToArrayElement: (index)->
     if arrayFragment = @last().getArrayFragment(index)
       @last().set "fragment", arrayFragment
-      @trigger "path:update"
+      @trigger "change:path"
     return this

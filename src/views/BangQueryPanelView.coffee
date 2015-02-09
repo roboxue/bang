@@ -37,7 +37,7 @@ class BangQueryPanelView extends Backbone.View
 
   events:
     "click #runQuery": "doRunQuery"
-    "click #rest": "doReset"
+    "click #reset": "doReset"
 
   render: ->
     root  = d3.select(@el)
@@ -63,11 +63,11 @@ class BangQueryPanelView extends Backbone.View
   doRunQuery: ->
     chrome.runtime.sendMessage {stage: "query"}
     query = $("#" + @textAreaId).val()
-    @trigger "runQuery", query
+    @trigger "change:query", query
 
   doReset: ->
-    $("#" + @textAreaId).val "bang"
-    bangJsonView.model.baseExpression = "bang"
-    bangJsonView.model.set {fragment: if bang instanceof Array then "bang[]" else "bang"}
-    bangJsonView.model.trigger "path:update"
+    @updateQuery "bang"
+    @trigger "reset:query"
 
+  updateQuery: (query)->
+    $("#" + @textAreaId).val query

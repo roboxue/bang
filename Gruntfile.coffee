@@ -91,14 +91,8 @@ module.exports = (grunt) ->
         ]
     watch:
       app:
-        files: ['src/**/*.coffee', 'manifest.json']
-        tasks: ['coffee:app', 'concat', 'copy']
-      template:
-        files: 'src/templates/*.mustache'
-        tasks: ['mustache', 'concat', 'copy' ]
-      stylesheet:
-        files: ['**/*.styl']
-        tasks: ['stylus', 'lineremover', 'copy']
+        files: ['src/**/*.coffee', '**/*.styl', 'src/templates/*.mustache', 'manifest.json']
+        tasks: ['mustache', 'coffee:app', 'stylus', 'lineremover', 'concat', 'uglify', 'copy']
       testClient:
         files: ['test/client/**/*.coffee']
         tasks: ['coffee:testClient']

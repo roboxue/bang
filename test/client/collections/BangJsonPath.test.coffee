@@ -65,11 +65,11 @@ describe 'BangJsonPath', ->
       expect(path.getQuery(null, true)).to.equal("_.chain(foo['key'].array[1]).pluck('key').value()")
 
   describe '#navigateTo', ->
-    it 'reduce the array size to index + 1 and keep existing elements when navigate to a valid index, and trigger path:update event', (done)->
+    it 'reduce the array size to index + 1 and keep existing elements when navigate to a valid index, and trigger change:path event', (done)->
       expected = new BangJsonPath([bangFragment, keyFragment]).getQuery()
       path = new BangJsonPath [bangFragment, keyFragment, arrayElementFragment1, arrayKeyPluckFragment]
       index = 1
-      path.once "path:update", ->
+      path.once "change:path", ->
         expect(path.getQuery()).to.deep.equal(expected)
         expect(path.length).to.equal(index + 1)
         done()

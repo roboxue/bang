@@ -1,4 +1,4 @@
-var BangJsonPath, BangJsonPathFragment, BangJsonView, BangQueryPanelView, BangRequestPanelView, keyInputId, newQueryParameterFormId, queryStringBlockId, queryStringListId, refreshLinkId, valueInputId,
+var BangJsonPath, BangJsonPathFragment, BangJsonView, BangQueryPanelView, BangRequestPanelView, prettyPrint, replacer,
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -20,6 +20,24 @@ BangJsonPathFragment = (function(_super) {
   arrayAndArrayElementRx = /^(.+)\[\d*]$/;
 
   keyRx = /(^|^countBy|^countByType):(.+)$/;
+
+  BangJsonPathFragment.prototype.getPathFragmentForKey = function(data, key) {
+    if (_.isArray(data[key])) {
+      if (data[key].length === 1) {
+        return new BangJsonPathFragment({
+          fragment: key + "[0]"
+        });
+      } else {
+        return new BangJsonPathFragment({
+          fragment: key + "[]"
+        });
+      }
+    } else {
+      return new BangJsonPathFragment({
+        fragment: key
+      });
+    }
+  };
 
   BangJsonPathFragment.prototype.getQueryFragment = function() {
     var arrayName, fullExpression, keyName, method, type, _ref, _ref1;
@@ -206,7 +224,7 @@ BangJsonPath = (function(_super) {
     while (this.models.length > Math.max(index + 1, 0)) {
       this.pop();
     }
-    this.trigger("path:update");
+    this.trigger("change:path");
     return this;
   };
 
@@ -214,7 +232,7 @@ BangJsonPath = (function(_super) {
     var arrayFragment;
     if (arrayFragment = this.last().getArrayFragment(index)) {
       this.last().set("fragment", arrayFragment);
-      this.trigger("path:update");
+      this.trigger("change:path");
     }
     return this;
   };
@@ -267,93 +285,73 @@ BangJsonView = (function(_super) {
 
   BangJsonView.prototype.model = BangJsonPath;
 
+
+  /*
+  |------------------------------|
+  |.panel-body ------------------|
+  | | breadcrumbUl --------------|
+  | | pageHeader ----------------|
+  | | arrayToolbar --------------|
+  |------------------------------|
+  |.panel-footer ----------------|
+  | | indexSelectorDiv ----------|
+  |------------------------------|
+  |.panel-body ------------------|
+  | | codeBlockPre --------------|
+  | | arrayContentTable ---------|
+  |------------------------------|
+  |.panel-footer ----------------|
+  | | indexSelectorDiv ----------|
+  |------------------------------|
+   */
+
   BangJsonView.prototype.render = function() {
     var header, panelBody, root;
     root = d3.select(this.el);
     header = root.append("div").attr("class", "panel-heading");
-    header.append("span").attr("class", "panel-title").html("JSON Navigator (Response has been stored into variable <code class='bang'>bang</code>)");
+    this.renderHeader(header);
     panelBody = root.append("div").attr("class", "panel-body");
+    root.append("div").attr("class", "panel-footer");
     this.breadcrumbUl = panelBody.append("ul").attr("class", "breadcrumb");
     this.pageHeader = panelBody.append("div").attr("class", "page-header");
     this.arrayToolbar = panelBody.append("div").attr("class", "btn-toolbar").attr("role", "toolbar");
-    root.append("div").attr("class", "panel-footer");
     this.codeBlockPre = root.append("div").attr("class", "panel-body").append("pre");
     $(this.codeBlockPre.node()).hide();
     this.arrayContentTable = root.append("table").attr("class", "table table-striped");
     root.append("div").attr("class", "panel-footer");
     this.indexSelectorDiv = root.selectAll(".panel-footer").append("div").attr("class", "form-inline");
-    return this.listenTo(this.model, "path:update", this.update);
+    return this.listenTo(this.model, "change:result", this.update);
   };
 
-  BangJsonView.prototype.update = function(option) {
-    var error, keyName, method, query, result, type, _ref, _ref1;
-    this.clear();
-    query = this.model.getQuery();
-    _ref = runQuery(query), error = _ref.error, result = _ref.result;
-    if (!(option && option.silent)) {
-      $("#query").val(this.model.getQuery(null, true));
-    }
-    this.updateNavigator({
-      error: error,
-      result: result
-    });
+  BangJsonView.prototype.renderHeader = function(header) {
+    return header.append("span").attr("class", "panel-title").html("JSON Navigator (Response has been stored into variable <code class='bang'>bang</code>)");
+  };
+
+  BangJsonView.prototype.update = function(result) {
+    var type;
+    bangJsonView.clear();
     type = this.model.last().getFragmentType();
-    if (result instanceof Array) {
-      if (type === "ArrayRoot") {
-        if (result.length === 0) {
-          this.pageHeader.html("<h3>Empty array</h3>");
-        } else {
-          this.pageHeader.html("<h3>Array with " + result.length + " elements</h3>");
-          this.updateArrayContent(result);
-        }
-      } else if (type === "ArrayKey") {
-        keyName = this.model.last().getArrayKeyName().keyName;
-        this.pageHeader.html("<h3>Key \"" + keyName + "\" in Array</h3>");
-        this.updateArrayPluckView(result, keyName);
-      }
-    } else if (result instanceof Object) {
-      if (_.size(result) === 0) {
-        this.pageHeader.html("<h3>Empty Object</h3>");
-        this.codeBlockPre.html("<span>Empty Object</span>");
-        $(this.codeBlockPre.node()).show();
-      } else {
-        if (type === "ArrayKey") {
-          _ref1 = this.model.last().getArrayKeyName(), keyName = _ref1.keyName, method = _ref1.method;
-          if (method === "countBy") {
-            this.pageHeader.html("<h3>Count by \"" + keyName + "\" in Array</h3>");
-          }
-          if (method === "countByType") {
-            this.pageHeader.html("<h3>Count by the type of \"" + keyName + "\" in Array</h3>");
-          }
-        } else {
-          this.pageHeader.html("<h3>Object with " + (_.size(result)) + " keys</h3>");
-        }
-        this.updateKeyValuePair(result);
-      }
-    } else {
-      this.pageHeader.html("<h3>String Value</h3>");
-      this.codeBlockPre.html(prettyPrint(result, true));
-      $(this.codeBlockPre.node()).show();
-    }
+    this.updateBreadcrumb(this.model);
     if (type === "ArrayElement") {
-      return this.updateArrayNavigator(this.model.last().getArrayIndex());
+      this.updateArrayEnumerator(this.model.last().getArrayIndex());
+    }
+    if (result instanceof Array) {
+      return this.updateArrayResult(result, type);
+    } else if (result instanceof Object) {
+      return this.updateObjectResult(result, type);
+    } else {
+      return this.updateStringResult(result);
     }
   };
 
-  BangJsonView.prototype.updateNavigator = function(_arg) {
-    var error, path, result;
-    error = _arg.error, result = _arg.result;
-    path = this.model;
-    if (error) {
-      return this.breadcrumbUl.text(JSON.stringify(error, null, 4));
-    }
-    return this.breadcrumbUl.selectAll("li").data(this.model.models).enter().append("li").each(function(pathFragment, i) {
+  BangJsonView.prototype.updateBreadcrumb = function(path) {
+    return this.breadcrumbUl.selectAll("li").data(path.models).enter().append("li").each(function(pathFragment, i) {
       if (i === path.length - 1) {
         if (pathFragment.getBaseFragment()) {
           return d3.select(this).append("a").attr("href", "#").text(pathFragment.getDisplayName()).on("click", function() {
             d3.event.preventDefault();
             path.last().set("fragment", pathFragment.getBaseFragment());
-            return path.trigger("path:update");
+            return path.trigger("change:path");
           });
         } else {
           return d3.select(this).append("span").text(pathFragment.getDisplayName());
@@ -367,35 +365,99 @@ BangJsonView = (function(_super) {
     });
   };
 
-  BangJsonView.prototype.updateArrayNavigator = function(_arg) {
+  BangJsonView.prototype.updateArrayResult = function(result, type) {
+    var keyName;
+    if (type === "ArrayKey") {
+      keyName = this.model.last().getArrayKeyName().keyName;
+      this.pageHeader.html("<h3>Key \"" + keyName + "\" in Array</h3>");
+      return this.updateArrayPluckView(result, keyName);
+    } else {
+      if (_.isEmpty(result)) {
+        return this.pageHeader.html("<h3>Empty array</h3>");
+      } else {
+        this.pageHeader.html("<h3>Array with " + result.length + " elements</h3>");
+        return this.updateArrayContent(result);
+      }
+    }
+  };
+
+  BangJsonView.prototype.updateObjectResult = function(result, type) {
+    var keyName, method, _ref;
+    if (_.isEmpty(result)) {
+      this.pageHeader.html("<h3>Empty Object</h3>");
+      return this.updateCodeBlock("<span>Empty Object</span>");
+    } else {
+      this.updateKeyValuePair(result);
+      if (type === "ArrayKey") {
+        _ref = this.model.last().getArrayKeyName(), keyName = _ref.keyName, method = _ref.method;
+        if (method === "countBy") {
+          this.pageHeader.html("<h3>Count by \"" + keyName + "\" in Array</h3>");
+        }
+        if (method === "countByType") {
+          return this.pageHeader.html("<h3>Count by the type of \"" + keyName + "\" in Array</h3>");
+        }
+      } else {
+        return this.pageHeader.html("<h3>Object with " + (_.size(result)) + " keys</h3>");
+      }
+    }
+  };
+
+  BangJsonView.prototype.updateStringResult = function(result) {
+    this.pageHeader.html("<h3>String Value</h3>");
+    return this.updateCodeBlock(prettyPrint(result, true));
+  };
+
+  BangJsonView.prototype.updateCodeBlock = function(htmlContent) {
+    this.codeBlockPre.html(htmlContent);
+    return $(this.codeBlockPre.node()).show();
+  };
+
+  BangJsonView.prototype.updateArrayEnumerator = function(_arg) {
     var arrayName, index, maxLength, pager, query;
     arrayName = _arg.arrayName, index = _arg.index;
     pager = this.indexSelectorDiv.append("nav").append("ul").attr("class", "pager");
-    query = bangJsonView.model.getQuery(bangJsonView.model.slice(0, bangJsonView.model.length - 1).concat(new BangJsonPathFragment({
+    query = this.model.getQuery(this.model.slice(0, this.model.length - 1).concat(new BangJsonPathFragment({
       fragment: arrayName + "[]"
     })));
     maxLength = eval(query).length;
     if (index > 0) {
-      pager.append("li").attr("class", "previous").append("a").attr("href", "#").html("&larr;Previous").on("click", function() {
-        d3.event.preventDefault();
-        return bangJsonView.model.navigateToArrayElement(index - 1);
-      });
+      pager.append("li").attr("class", "previous").append("a").attr("href", "#").html("&larr;Previous").on("click", (function(_this) {
+        return function() {
+          d3.event.preventDefault();
+          return _this.model.navigateToArrayElement(index - 1);
+        };
+      })(this));
     } else {
       pager.append("li").attr("class", "previous disabled").append("a").attr("href", "#").html("&larr;Previous");
     }
     pager.append("li").html("" + (index + 1) + " / " + maxLength);
     if (index < maxLength - 1) {
-      return pager.append("li").attr("class", "next").append("a").attr("href", "#").html("Next&rarr;").on("click", function() {
-        d3.event.preventDefault();
-        return bangJsonView.model.navigateToArrayElement(index + 1);
-      });
+      return pager.append("li").attr("class", "next").append("a").attr("href", "#").html("Next&rarr;").on("click", (function(_this) {
+        return function() {
+          d3.event.preventDefault();
+          return _this.model.navigateToArrayElement(index + 1);
+        };
+      })(this));
     } else {
       return pager.append("li").attr("class", "next disabled").append("a").attr("href", "#").html("Next&rarr;");
     }
   };
 
-  BangJsonView.prototype.updateKeyValuePair = function(result, option) {
-    var rows, thead;
+  BangJsonView.prototype.updateArrayNavigator = function(result) {
+    this.indexSelectorDiv.append("div").attr("class", "input-group").html("<span class=\"input-group-addon\">Element No.</span>\n<input type='number' class='form-control' id='arrayIndex' value='1' min='1' max='" + result.length + "'>\n<span class=\"input-group-addon\">/ " + result.length + "</span>");
+    return this.indexSelectorDiv.append("button").attr("type", "submit").attr("class", "btn btn-default").text("Go").on("click", (function(_this) {
+      return function() {
+        var index;
+        d3.event.preventDefault();
+        index = parseInt(_this.$("#arrayIndex").val()) - 1;
+        return _this.model.navigateToArrayElement(index);
+      };
+    })(this));
+  };
+
+  BangJsonView.prototype.updateKeyValuePair = function(result) {
+    var path, rows, thead;
+    path = this.model;
     thead = this.arrayContentTable.append("thead").append("tr");
     rows = this.arrayContentTable.append("tbody").selectAll("tr").data(Object.keys(result)).enter().append("tr").each(function(key) {
       var pathFragment;
@@ -403,11 +465,11 @@ BangJsonView = (function(_super) {
         d3.select(this).append("th").text(key);
         return d3.select(this).append("td").text(result[key] != null ? result[key].toString() : "null");
       } else {
-        pathFragment = getPathFragmentForKey(result, key);
+        pathFragment = BangJsonPathFragment.prototype.getPathFragmentForKey(result, key);
         d3.select(this).append("th").append("a").attr("href", "#").text(pathFragment.get("fragment")).on("click", function() {
           d3.event.preventDefault();
-          bangJsonView.model.add(pathFragment);
-          return bangJsonView.model.trigger("path:update");
+          path.add(pathFragment);
+          return path.trigger("change:path");
         });
         if (result[key] instanceof Array) {
           return d3.select(this).append("td").text("Array with " + result[key].length + " elements");
@@ -434,13 +496,7 @@ BangJsonView = (function(_super) {
 
   BangJsonView.prototype.updateArrayContent = function(result) {
     var keyStats;
-    this.indexSelectorDiv.append("div").attr("class", "input-group").html("<span class=\"input-group-addon\">Element No.</span>\n<input type='number' class='form-control' id='arrayIndex' value='1' min='1' max='" + result.length + "'>\n<span class=\"input-group-addon\">/ " + result.length + "</span>");
-    this.indexSelectorDiv.append("button").attr("type", "submit").attr("class", "btn btn-default").text("Go").on("click", function() {
-      var index;
-      d3.event.preventDefault();
-      index = parseInt($("#arrayIndex").val()) - 1;
-      return bangJsonView.model.navigateToArrayElement(index);
-    });
+    this.updateArrayNavigator(result);
     keyStats = _.chain(result).map(function(row) {
       return _.compact(_.keys(row));
     }).flatten().unique().map(function(key) {
@@ -456,33 +512,31 @@ BangJsonView = (function(_super) {
     if (keyStats.length > 0) {
       return this.updateArraySchemaList(keyStats, result);
     } else {
-      this.codeBlockPre.html(prettyPrint(result, true));
-      return $(this.codeBlockPre.node()).show();
+      return this.updateCodeBlock(prettyPrint(result, true));
     }
   };
 
   BangJsonView.prototype.updateArrayPluckView = function(result, key) {
-    var containsObject, rows, sortHelper, tbody, thead, toolbar;
+    var path, rows, sortHelper, tbody, thead;
+    path = this.model;
     thead = this.arrayContentTable.append("thead").append("tr");
     tbody = this.arrayContentTable.append("tbody");
-    containsObject = false;
     rows = tbody.selectAll("tr").data(result).enter().append("tr").each(function(value, i) {
       var tr, valueString;
       tr = d3.select(this);
       tr.attr("data-index", i);
       tr.append("th").append("a").attr("href", "#").text("Element " + i).on("click", function() {
         d3.event.preventDefault();
-        bangJsonView.model.pop();
-        bangJsonView.model.navigateToArrayElement(i);
+        path.pop();
+        path.navigateToArrayElement(i);
         if (value instanceof Object) {
-          bangJsonView.model.push({
+          path.push({
             fragment: key
           });
         }
-        return bangJsonView.model.trigger("path:update");
+        return path.trigger("change:path");
       });
       if (value instanceof Object) {
-        containsObject = true;
         tr.append("td").append("pre").html(prettyPrint(value, true) || "{}");
         return tr.attr("data-value", "object");
       } else {
@@ -512,29 +566,38 @@ BangJsonView = (function(_super) {
     thead.append("th").attr("class", "sortable").html("Value<span class='glyphicon glyphicon-sort'></span>").on("click", function() {
       return sortHelper($(this).find(".glyphicon"), "value");
     });
-    if (!containsObject) {
-      toolbar = this.arrayToolbar.append("div").attr("class", "btn-group").attr("role", "group");
-      toolbar.append("button").attr("class", "btn btn-default").html("<span class='glyphicon glyphicon-list-alt' aria-hidden='true'></span> Count By Value").on("click", function() {
-        d3.event.preventDefault();
-        bangJsonView.model.pop();
-        bangJsonView.model.push(new BangJsonPathFragment({
-          fragment: "countBy:" + key
-        }));
-        return bangJsonView.model.trigger("path:update");
-      });
-      return toolbar.append("button").attr("class", "btn btn-default").html("<span class='glyphicon glyphicon-list-alt' aria-hidden='true'></span> Count By Type").on("click", function() {
-        d3.event.preventDefault();
-        bangJsonView.model.pop();
-        bangJsonView.model.push(new BangJsonPathFragment({
-          fragment: "countByType:" + key
-        }));
-        return bangJsonView.model.trigger("path:update");
-      });
+    if (_.every(result, function(value) {
+      return !_.isObject(value);
+    })) {
+      return this.updateToolbar();
     }
   };
 
+  BangJsonView.prototype.updateToolbar = function() {
+    var path, toolbar;
+    path = this.model;
+    toolbar = this.arrayToolbar.append("div").attr("class", "btn-group").attr("role", "group");
+    toolbar.append("button").attr("class", "btn btn-default").html("<span class='glyphicon glyphicon-list-alt' aria-hidden='true'></span> Count By Value").on("click", function() {
+      d3.event.preventDefault();
+      path.pop();
+      path.push(new BangJsonPathFragment({
+        fragment: "countBy:" + key
+      }));
+      return path.trigger("change:path");
+    });
+    return toolbar.append("button").attr("class", "btn btn-default").html("<span class='glyphicon glyphicon-list-alt' aria-hidden='true'></span> Count By Type").on("click", function() {
+      d3.event.preventDefault();
+      path.pop();
+      path.push(new BangJsonPathFragment({
+        fragment: "countByType:" + key
+      }));
+      return path.trigger("change:path");
+    });
+  };
+
   BangJsonView.prototype.updateArraySchemaList = function(keyStats, array) {
-    var rows, thead;
+    var path, rows, thead;
+    path = this.model;
     this.arrayToolbar.append("div").attr("class", "btn-group").attr("role", "group").append("button").attr("class", "btn btn-default").html("<span class='glyphicon glyphicon-th' aria-hidden='true'></span> Table View").on("click", (function(_this) {
       return function() {
         d3.event.preventDefault();
@@ -553,10 +616,10 @@ BangJsonView = (function(_super) {
       var key;
       key = _arg.key;
       d3.event.preventDefault();
-      bangJsonView.model.push(new BangJsonPathFragment({
+      path.push(new BangJsonPathFragment({
         fragment: ":" + key
       }));
-      return bangJsonView.model.trigger("path:update");
+      return path.trigger("change:path");
     });
     rows.append("td").text(function(_arg) {
       var key, times, types;
@@ -585,7 +648,8 @@ BangJsonView = (function(_super) {
   };
 
   BangJsonView.prototype.updateArraySchemaTable = function(keyStats, array) {
-    var dismissRow, keys, rows, sortHelper, tbody, thead, titleRow;
+    var dismissRow, keys, path, rows, sortHelper, tbody, thead, titleRow;
+    path = this.model;
     this.arrayToolbar.append("div").attr("class", "btn-group").attr("role", "group").append("button").attr("class", "btn btn-default").html("<span class='glyphicon glyphicon-th-list' aria-hidden='true'></span> List View").on("click", (function(_this) {
       return function() {
         d3.event.preventDefault();
@@ -604,7 +668,7 @@ BangJsonView = (function(_super) {
       return i + 1;
     }).on("click", function(d, i) {
       d3.event.preventDefault();
-      return bangJsonView.model.navigateToArrayElement(i);
+      return path.navigateToArrayElement(i);
     });
     rows.each(function(element, i) {
       var currentRow;
@@ -667,6 +731,11 @@ BangJsonView = (function(_super) {
     });
   };
 
+  BangJsonView.prototype.showErrorMessage = function(errorMessage) {
+    this.codeBlockPre.text(errorMessage);
+    return $(this.codeBlockPre.node()).show();
+  };
+
   BangJsonView.prototype.clear = function() {
     this.breadcrumbUl.text("");
     this.indexSelectorDiv.text("");
@@ -680,6 +749,29 @@ BangJsonView = (function(_super) {
   return BangJsonView;
 
 })(Backbone.View);
+
+replacer = function(match, pIndent, pKey, pVal, pEnd) {
+  var key, r, str, val;
+  key = '<span class=json-key>';
+  val = '<span class=json-value>';
+  str = '<span class=json-string>';
+  r = pIndent || '';
+  r = r.replace(/\s/g, '&nbsp;');
+  if (pKey) {
+    r = r + key + pKey.replace(/[": ]/g, '') + '</span>: ';
+  }
+  if (pVal) {
+    r = r + (pVal[0] === '"' ? str : val) + pVal + '</span>';
+  }
+  r += pEnd || '';
+  return r;
+};
+
+prettyPrint = function(obj) {
+  var jsonLine;
+  jsonLine = /^( *)("[\w]+": )?("[^"]*"|[\w.+-]*)?([,\[\{}\]]*)?$/mg;
+  return JSON.stringify(obj, null, 4).replace(/&/g, '&amp;').replace(/\\"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(jsonLine, replacer);
+};
 
 
 /*
@@ -729,7 +821,7 @@ BangQueryPanelView = (function(_super) {
 
   BangQueryPanelView.prototype.events = {
     "click #runQuery": "doRunQuery",
-    "click #rest": "doReset"
+    "click #reset": "doReset"
   };
 
   BangQueryPanelView.prototype.render = function() {
@@ -773,16 +865,16 @@ BangQueryPanelView = (function(_super) {
       stage: "query"
     });
     query = $("#" + this.textAreaId).val();
-    return this.trigger("runQuery", query);
+    return this.trigger("change:query", query);
   };
 
   BangQueryPanelView.prototype.doReset = function() {
-    $("#" + this.textAreaId).val("bang");
-    bangJsonView.model.baseExpression = "bang";
-    bangJsonView.model.set({
-      fragment: bang instanceof Array ? "bang[]" : "bang"
-    });
-    return bangJsonView.model.trigger("path:update");
+    this.updateQuery("bang");
+    return this.trigger("reset:query");
+  };
+
+  BangQueryPanelView.prototype.updateQuery = function(query) {
+    return $("#" + this.textAreaId).val(query);
   };
 
   return BangQueryPanelView;
@@ -824,18 +916,6 @@ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-queryStringBlockId = "uriSearch";
-
-queryStringListId = "queryParameters";
-
-newQueryParameterFormId = "addNewQueryParameter";
-
-keyInputId = "newKey";
-
-valueInputId = "newValue";
-
-refreshLinkId = "refreshLink";
-
 BangRequestPanelView = (function(_super) {
   __extends(BangRequestPanelView, _super);
 
@@ -845,6 +925,14 @@ BangRequestPanelView = (function(_super) {
 
   BangRequestPanelView.prototype.model = URI;
 
+  BangRequestPanelView.prototype.initialize = function() {
+    this.queryStringBlockId = "uriSearch";
+    this.queryStringListId = "queryParameters";
+    this.keyInputId = "newKey";
+    this.valueInputId = "newValue";
+    return this.refreshLinkId = "refreshLink";
+  };
+
   BangRequestPanelView.prototype.events = {
     "change .form-group[data-key] input": "onUpdateUri",
     "click #uriSearch": "onToggleQueryStringDetail",
@@ -853,9 +941,9 @@ BangRequestPanelView = (function(_super) {
 
   BangRequestPanelView.prototype.render = function(root) {
     root = d3.select(this.el);
+    this.originQueryParam = this.model.search(true);
     this.renderHeader(root.append("div").attr("class", "panel-heading"));
-    this.renderRequestUri(root.append("div").attr("class", "form-horizontal panel-footer").attr("id", "uri"));
-    return root.append("div").attr("class", "panel-body").style("display", "none").append("div").attr("id", "rawResponse");
+    return this.renderRequestUri(root.append("div").attr("class", "form-horizontal panel-footer").attr("id", "uri"));
   };
 
   BangRequestPanelView.prototype.renderHeader = function(header) {
@@ -873,14 +961,12 @@ BangRequestPanelView = (function(_super) {
       port: this.model.port(),
       path: this.model.path(),
       hash: this.model.hash(),
-      queryStringBlockId: queryStringBlockId,
-      queryStringListId: queryStringListId,
-      newQueryParameterFormId: newQueryParameterFormId,
-      keyInputId: keyInputId,
-      valueInputId: valueInputId,
-      refreshLinkId: refreshLinkId
+      queryStringBlockId: this.queryStringBlockId,
+      queryStringListId: this.queryStringListId,
+      keyInputId: this.keyInputId,
+      valueInputId: this.valueInputId,
+      refreshLinkId: this.refreshLinkId
     };
-    this.originQueryParam = this.model.search(true);
     root.html(window.Milk.render(bangTemplates.BangRequestUri, page));
     root.selectAll(".form-control-feedback").style("display", "none");
     return this.renderQueryParameters();
@@ -888,9 +974,9 @@ BangRequestPanelView = (function(_super) {
 
   BangRequestPanelView.prototype.renderQueryParameters = function() {
     var inputDiv, parameterDiv;
-    $("#" + refreshLinkId).attr("href", this.model.href());
-    $("#" + queryStringBlockId).text(this.model.search() || "(no query string)");
-    parameterDiv = d3.select("#" + queryStringListId).text("").selectAll("div.form-group").data(_.pairs(this.model.search(true))).enter().append("div").attr("class", "form-group has-feedback queryParameter").attr("data-key", function(_arg) {
+    $("#" + this.refreshLinkId).attr("href", this.model.href());
+    $("#" + this.queryStringBlockId).text(this.model.search() || "(no query string)");
+    parameterDiv = d3.select("#" + this.queryStringListId).text("").selectAll("div.form-group").data(_.pairs(this.model.search(true))).enter().append("div").attr("class", "form-group has-feedback queryParameter").attr("data-key", function(_arg) {
       var key;
       key = _arg[0];
       return key;
@@ -957,39 +1043,39 @@ BangRequestPanelView = (function(_super) {
     return this.updateUri($(ev.currentTarget), value && value !== defaultValue);
   };
 
-  BangRequestPanelView.prototype.updateUri = function(divToUpdate, toggleOn) {
-    if (toggleOn) {
+  BangRequestPanelView.prototype.updateUri = function(divToUpdate, showFeedbackIcon) {
+    if (showFeedbackIcon) {
       divToUpdate.siblings(".form-control-feedback").show();
       divToUpdate.parent().parent().addClass("has-warning");
     } else {
       divToUpdate.siblings(".form-control-feedback").hide();
       divToUpdate.parent().parent().removeClass("has-warning");
     }
-    $("#" + queryStringBlockId).text(this.model.search() || "(no query string)");
-    return $("#" + refreshLinkId).attr("href", this.model.href());
+    $("#" + this.queryStringBlockId).text(this.model.search() || "(no query string)");
+    return $("#" + this.refreshLinkId).attr("href", this.model.href());
   };
 
   BangRequestPanelView.prototype.onToggleQueryStringDetail = function() {
-    return $("#" + queryStringListId).toggle();
+    return $("#" + this.queryStringListId).toggle();
   };
 
   BangRequestPanelView.prototype.onAddNewQueryParameter = function() {
     var newKey, newValue;
-    newKey = $("#" + keyInputId).val();
+    newKey = $("#" + this.keyInputId).val();
     if (newKey) {
-      $("#" + keyInputId).parent().removeClass("has-error");
+      $("#" + this.keyInputId).parent().removeClass("has-error");
     } else {
-      return $("#" + keyInputId).parent().addClass("has-error");
+      return $("#" + this.keyInputId).parent().addClass("has-error");
     }
-    newValue = $("#" + valueInputId).val();
+    newValue = $("#" + this.valueInputId).val();
     if (newValue) {
       this.model.addSearch(newKey, newValue);
     } else {
       this.model.addSearch(newKey);
     }
     this.renderQueryParameters();
-    $("#" + keyInputId).val("");
-    return $("#" + valueInputId).val("");
+    $("#" + this.keyInputId).val("");
+    return $("#" + this.valueInputId).val("");
   };
 
   return BangRequestPanelView;
