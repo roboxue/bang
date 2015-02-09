@@ -78,7 +78,7 @@ class BangJsonView extends Backbone.View
     header.append("span").attr("class", "panel-title").html("JSON Navigator (Response has been stored into variable <code class='bang'>bang</code>)")
 
   update: (result)->
-    bangJsonView.clear()
+    @clear()
     type = @model.last().getFragmentType()
     @updateBreadcrumb @model
     if type is "ArrayElement"

@@ -329,7 +329,7 @@ BangJsonView = (function(_super) {
 
   BangJsonView.prototype.update = function(result) {
     var type;
-    bangJsonView.clear();
+    this.clear();
     type = this.model.last().getFragmentType();
     this.updateBreadcrumb(this.model);
     if (type === "ArrayElement") {
