@@ -92,10 +92,13 @@ module.exports = (grunt) ->
     watch:
       app:
         files: ['src/**/*.coffee', 'manifest.json']
-        tasks: ['coffee:app', 'copy', 'lineremover']
+        tasks: ['coffee:app', 'concat', 'copy']
+      template:
+        files: 'src/templates/*.mustache'
+        tasks: ['mustache', 'concat', 'copy' ]
       stylesheet:
         files: ['**/*.styl']
-        tasks: ['stylus', 'copy', 'lineremover']
+        tasks: ['stylus', 'lineremover', 'copy']
       testClient:
         files: ['test/client/**/*.coffee']
         tasks: ['coffee:testClient']
@@ -127,5 +130,5 @@ module.exports = (grunt) ->
 
   # Default task.
   grunt.registerTask 'default', ['clean:app', 'bower', 'mustache', 'coffee:app', 'stylus', 'lineremover', 'concat', 'uglify', 'copy', 'compress']
-  grunt.registerTask 'buildTest', ['clean', 'bower', 'mustache', 'coffee', 'stylus', 'lineremover', 'concat', 'copy']
-  grunt.registerTask 'testClient', ['clean', 'bower', 'mustache', 'coffee', 'stylus', 'lineremover', 'concat', 'copy', 'open:test']
+  grunt.registerTask 'buildTest', ['clean', 'bower', 'mustache', 'coffee', 'stylus', 'lineremover', 'concat', 'uglify', 'copy']
+  grunt.registerTask 'testClient', ['clean', 'bower', 'mustache', 'coffee', 'stylus', 'lineremover', 'concat', 'uglify', 'copy', 'open:test']

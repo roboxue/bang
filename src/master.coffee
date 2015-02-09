@@ -37,6 +37,7 @@ originBangUri = null
 queryResult = null
 bangJsonView = null
 bangQueryPanelView = null
+bangRequestPanelView = null
 originBody = null
 
 render = ->
@@ -55,7 +56,11 @@ render = ->
     el: queryRow.append("div").attr("class", "col-lg-12 col-md-12 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-default").attr("id", "queryPanel").node()
   }
   bangQueryPanelView.render()
-  renderResponse responseRow.append("div").attr("class", "col-lg-12 col-md-12 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-success")
+  bangRequestPanelView = new BangRequestPanelView {
+    el: responseRow.append("div").attr("class", "col-lg-12 col-md-12 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-success").attr("id", "requestPanel").node()
+    model: bangUri
+  }
+  bangRequestPanelView.render()
   $(".panel-heading")
   $(".panel-toggle").click (ev)->
     ev.preventDefault()
@@ -65,8 +70,22 @@ render = ->
   root.append("link").attr({rel: "stylesheet", href: chrome.extension.getURL('lib/bootstrap/bootstrap.css'), type: "text/css"})
   root.append("link").attr({rel: "stylesheet", href: chrome.extension.getURL('lib/bang.css'), type: "text/css"})
   bangJsonView.model.trigger "path:update"
-  $("#runQuery").click didRunQuery
-  $("#reset, .bang").click didReset
+  bangQueryPanelView.on "runQuery", (query)->
+    bangJsonView.clear()
+    { error, result } = runQuery query
+    console.log query, error, result
+    if error
+      bangJsonView.codeBlockPre.text error
+      bangJsonView.codeBlockPre.text error
+      $(bangJsonView.codeBlockPre.node()).show()
+    else
+      queryResult = result
+      bangJsonView.model.baseExpression = query
+      if queryResult instanceof Array
+        bangJsonView.model.set {fragment: "queryResult[]"}
+      else
+        bangJsonView.model.set {fragment: "queryResult"}
+      bangJsonView.model.trigger "path:update"
 
 renderRawResponseJSON = ->
   $("#rawResponse").html prettyPrint(bang)
@@ -137,157 +156,6 @@ renderHeader = (root)->
   $("#dismiss").click (ev)->
     ev.preventDefault()
     d3.select("body").text("").append("pre").html JSON.stringify(JSON.parse(originBody), null, stringifyPadingSize)
-
-renderResponse = (root)->
-  header = root.append("div").attr("class", "panel-heading")
-  header.append("span").attr("class", "panel-title").html("Response from <code>#{bangUri.href()}</code> stored into <code class='bang'>bang</code>")
-  header.append("div").attr("class", "panel-toggle pull-right").text("toggle details")
-  renderUri root.append("div").attr("class", "form-horizontal panel-footer").attr("id", "uri")
-  root.append("div").attr("class", "panel-body").style("display", "none").append("div").attr("id", "rawResponse")
-
-renderUri = (root)->
-  root.html """
-    <div class="form-group" data-key="protocol">
-      <label class="control-label col-sm-2">Protocol</label>
-      <div class="col-sm-10"><p class="form-control-static">#{bangUri.protocol()}</p></div>
-    </div>
-    <div class="form-group has-feedback" data-key="hostname">
-      <label for="uriHostname" class="control-label col-sm-2">Hostname</label>
-      <div class="col-sm-10">
-        <input type="text" class="form-control" id="uriHstname" placeholder="#{bangUri.hostname() or 'www.myhost.com'}">
-        <span class="glyphicon glyphicon-warning-sign form-control-feedback" aria-hidden="true"></span>
-      </div>
-    </div>
-    <div class="form-group has-feedback" data-key="port">
-      <label for="uriPort" class="control-label col-sm-2">Port</label>
-      <div class="col-sm-10">
-        <input type="number" min="0" max="99999" class="form-control" id="uriPort" placeholder="#{bangUri.port() or '80'}">
-        <span class="glyphicon glyphicon-warning-sign form-control-feedback" aria-hidden="true"></span>
-      </div>
-    </div>
-    <div class="form-group has-feedback" data-key="path">
-      <label for="uriPath" class="col-sm-2 control-label">Path
-      </label>
-      <div class="col-sm-10">
-        <input type="text" class="form-control" id="uriPath" placeholder="#{bangUri.path() or '(/path)'}">
-        <span class="glyphicon glyphicon-warning-sign form-control-feedback" aria-hidden="true"></span>
-      </div>
-    </div>
-    <div class="form-group has-feedback" data-key="hash">
-      <label for="uriHash" class="col-sm-2 control-label">Hash
-      </label>
-      <div class="col-sm-10">
-        <input type="text" class="form-control" id="uriHash" placeholder="#{bangUri.hash() or '(#hash)'}" value="#{bangUri.hash()}">
-        <span class="glyphicon glyphicon-warning-sign form-control-feedback" aria-hidden="true"></span>
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="control-label col-sm-2">Query String</label>
-      <div class="col-sm-10">
-        <pre class="form-control-static" id="search"></pre>
-      </div>
-    </div>
-    <div id="queryParameters">
-    </div>
-    <div class="form-group" id="addNewQueryParameter">
-      <div class="col-sm-offset-2 col-sm-2">
-        <button class="btn btn-default control-label glyphicon glyphicon-plus-sign">Add</button>
-      </div>
-      <div class="col-sm-4">
-        <input type="text" class="form-control" id="newKey" placeholder="new key">
-      </div>
-      <div class="col-sm-4">
-        <input type="text" class="form-control" id="newValue" placeholder="new value">
-      </div>
-    </div>
-    <div class="form-group">
-      <div class="col-sm-offset-2 col=sm-10">
-        <a id="refreshLink">Refresh</a>
-      </div>
-    </div>
-  """
-  root.selectAll(".form-control-feedback").style({display: "none"})
-  renderQueryParameters()
-  $("#uri .form-group[data-key] input").change (ev)->
-    key = $(ev.currentTarget).parent().parent().data("key")
-    value = $(ev.currentTarget).val()
-    defaultValue = $(ev.currentTarget).attr("placeholder")
-    valueToSet = if value and value isnt defaultValue then value else defaultValue
-    bangUri[key](valueToSet)
-    updateUri $(ev.currentTarget), (value and value isnt defaultValue)
-  $("#search").click ->
-    $("#queryParameters").toggle()
-  $("#addNewQueryParameter button").click ->
-    newKey = $("#newKey").val()
-    if newKey
-      $("#newKey").parent().removeClass("has-error")
-    else
-      return $("#newKey").parent().addClass("has-error")
-    newValue = $("#newValue").val()
-    if newValue
-      bangUri.addSearch(newKey, newValue)
-    else
-      bangUri.addSearch(newKey)
-    renderQueryParameters()
-    $("#newKey").val("")
-    $("#newValue").val("")
-
-renderQueryParameters = ->
-  $("#refreshLink").attr("href", bangUri.href())
-  $("#search").text bangUri.search() or "(no query string)"
-  parameterDiv = d3.select("#queryParameters").text("").selectAll("div.form-group").data(_.pairs(bangUri.search(true))).enter()
-  .append("div").attr("class", "form-group has-feedback queryParameter").attr("data-key", ([key])-> key)
-  parameterDiv.append("label").attr("class", "control-label col-sm-offset-2 col-sm-2").attr("for", ([key])-> "query#{key}").text(([key])-> key)
-  parameterDiv.append("div").attr("class", "col-sm-7").call (inputDiv)->
-    inputDiv.append("span").attr("class", "glyphicon glyphicon-warning-sign form-control-feedback").attr("aria-hidden", "true").style("display", "none")
-    inputDiv.append("input").attr(
-      placeholder: ([key])-> originBangUri.search(true)[key]
-      type: "text"
-      class: "form-control"
-      id: ([key])-> "query#{key}"
-    ).on "change", ([key])->
-      value = $(d3.event.currentTarget).val()
-      defaultValue = $(d3.event.currentTarget).attr("placeholder")
-      valueToSet = if value and value isnt defaultValue then value else defaultValue
-      bangUri.setSearch(key, valueToSet)
-      updateUri $(d3.event.currentTarget), (value and value isnt defaultValue)
-  parameterDiv.append("div").attr("class", "col-sm-1").append("button").attr("class", "glyphicon glyphicon-remove btn btn-default").on "click", ([key])->
-    bangUri.removeSearch key
-    renderQueryParameters()
-
-updateUri = (divToUpdate, toggleOn)->
-  if toggleOn
-    divToUpdate.siblings(".form-control-feedback").show()
-    divToUpdate.parent().parent().addClass("has-warning")
-  else
-    divToUpdate.siblings(".form-control-feedback").hide()
-    divToUpdate.parent().parent().removeClass("has-warning")
-  $("#search").text bangUri.search() or "(no query string)"
-  $("#refreshLink").attr("href", bangUri.href())
-
-didRunQuery = ->
-  chrome.runtime.sendMessage {stage: "query"}
-  query = $("#query").val()
-  bangJsonView.clear()
-  { error, result } = runQuery query
-  if error
-    bangJsonView.codeBlockPre.text error
-    bangJsonView.codeBlockPre.text error
-    $(bangJsonView.codeBlockPre.node()).show()
-  else
-    queryResult = result
-    bangJsonView.model.baseExpression = query
-    if queryResult instanceof Array
-      bangJsonView.model.set {fragment: "queryResult[]"}
-    else
-      bangJsonView.model.set {fragment: "queryResult"}
-    bangJsonView.model.trigger "path:update"
-
-didReset = ->
-  $("#query").val "bang"
-  bangJsonView.model.baseExpression = "bang"
-  bangJsonView.model.set {fragment: if bang instanceof Array then "bang[]" else "bang"}
-  bangJsonView.model.trigger "path:update"
 
 runQuery = (query)->
   try

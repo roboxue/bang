@@ -1,4 +1,4 @@
-var BangJsonPath, BangJsonPathFragment, BangJsonView, BangQueryPanelView,
+var BangJsonPath, BangJsonPathFragment, BangJsonView, BangQueryPanelView, BangRequestPanelView, keyInputId, newQueryParameterFormId, queryStringBlockId, queryStringListId, refreshLinkId, valueInputId,
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -723,6 +723,15 @@ BangQueryPanelView = (function(_super) {
     return BangQueryPanelView.__super__.constructor.apply(this, arguments);
   }
 
+  BangQueryPanelView.prototype.initialize = function() {
+    return this.textAreaId = "bangQuery";
+  };
+
+  BangQueryPanelView.prototype.events = {
+    "click #runQuery": "doRunQuery",
+    "click #rest": "doReset"
+  };
+
   BangQueryPanelView.prototype.render = function() {
     var root;
     root = d3.select(this.el);
@@ -738,11 +747,251 @@ BangQueryPanelView = (function(_super) {
     var page;
     page = {
       textAreaPlaceholder: "Any Javascript Expression!",
-      textAreaId: "bangQuery"
+      textAreaId: this.textAreaId,
+      supportedFrameworks: [
+        {
+          name: "jQuery",
+          url: "http://jquery.com"
+        }, {
+          name: "d3.js",
+          url: "http://d3js.org"
+        }, {
+          name: "underscore.js",
+          url: "http://underscorejs.org"
+        }, {
+          name: "backbone.js",
+          url: "http://backbonejs.org"
+        }
+      ]
     };
     return body.html(window.Milk.render(bangTemplates.BangQueryForm, page));
   };
 
+  BangQueryPanelView.prototype.doRunQuery = function() {
+    var query;
+    chrome.runtime.sendMessage({
+      stage: "query"
+    });
+    query = $("#" + this.textAreaId).val();
+    return this.trigger("runQuery", query);
+  };
+
+  BangQueryPanelView.prototype.doReset = function() {
+    $("#" + this.textAreaId).val("bang");
+    bangJsonView.model.baseExpression = "bang";
+    bangJsonView.model.set({
+      fragment: bang instanceof Array ? "bang[]" : "bang"
+    });
+    return bangJsonView.model.trigger("path:update");
+  };
+
   return BangQueryPanelView;
+
+})(Backbone.View);
+
+
+/*
+Bang.coffee, frontend JSON workspace, a chrome extension
+
+Copyright (c) 2015, Groupon, Inc.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+
+Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+Neither the name of GROUPON nor the names of its contributors may be
+used to endorse or promote products derived from this software without
+specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+queryStringBlockId = "uriSearch";
+
+queryStringListId = "queryParameters";
+
+newQueryParameterFormId = "addNewQueryParameter";
+
+keyInputId = "newKey";
+
+valueInputId = "newValue";
+
+refreshLinkId = "refreshLink";
+
+BangRequestPanelView = (function(_super) {
+  __extends(BangRequestPanelView, _super);
+
+  function BangRequestPanelView() {
+    return BangRequestPanelView.__super__.constructor.apply(this, arguments);
+  }
+
+  BangRequestPanelView.prototype.model = URI;
+
+  BangRequestPanelView.prototype.events = {
+    "change .form-group[data-key] input": "onUpdateUri",
+    "click #uriSearch": "onToggleQueryStringDetail",
+    "click #addNewQueryParameter button": "onAddNewQueryParameter"
+  };
+
+  BangRequestPanelView.prototype.render = function(root) {
+    root = d3.select(this.el);
+    this.renderHeader(root.append("div").attr("class", "panel-heading"));
+    this.renderRequestUri(root.append("div").attr("class", "form-horizontal panel-footer").attr("id", "uri"));
+    return root.append("div").attr("class", "panel-body").style("display", "none").append("div").attr("id", "rawResponse");
+  };
+
+  BangRequestPanelView.prototype.renderHeader = function(header) {
+    var href;
+    href = this.model.href();
+    header.append("span").attr("class", "panel-title").html("Response from <code>" + href + "</code> stored into <code class='bang'>bang</code>");
+    return header.append("div").attr("class", "panel-toggle pull-right").text("toggle details");
+  };
+
+  BangRequestPanelView.prototype.renderRequestUri = function(root) {
+    var page;
+    page = {
+      protocol: this.model.protocol(),
+      hostname: this.model.hostname(),
+      port: this.model.port(),
+      path: this.model.path(),
+      hash: this.model.hash(),
+      queryStringBlockId: queryStringBlockId,
+      queryStringListId: queryStringListId,
+      newQueryParameterFormId: newQueryParameterFormId,
+      keyInputId: keyInputId,
+      valueInputId: valueInputId,
+      refreshLinkId: refreshLinkId
+    };
+    this.originQueryParam = this.model.search(true);
+    root.html(window.Milk.render(bangTemplates.BangRequestUri, page));
+    root.selectAll(".form-control-feedback").style("display", "none");
+    return this.renderQueryParameters();
+  };
+
+  BangRequestPanelView.prototype.renderQueryParameters = function() {
+    var inputDiv, parameterDiv;
+    $("#" + refreshLinkId).attr("href", this.model.href());
+    $("#" + queryStringBlockId).text(this.model.search() || "(no query string)");
+    parameterDiv = d3.select("#" + queryStringListId).text("").selectAll("div.form-group").data(_.pairs(this.model.search(true))).enter().append("div").attr("class", "form-group has-feedback queryParameter").attr("data-key", function(_arg) {
+      var key;
+      key = _arg[0];
+      return key;
+    });
+    parameterDiv.append("label").attr("class", "control-label col-sm-offset-2 col-sm-2").attr("for", function(_arg) {
+      var key;
+      key = _arg[0];
+      return "query" + key;
+    }).text(function(_arg) {
+      var key;
+      key = _arg[0];
+      return key;
+    });
+    inputDiv = parameterDiv.append("div").attr("class", "col-sm-7");
+    inputDiv.append("span").attr("class", "glyphicon glyphicon-warning-sign form-control-feedback").attr("aria-hidden", "true").style("display", "none");
+    inputDiv.append("input").attr({
+      placeholder: (function(_this) {
+        return function(_arg) {
+          var key;
+          key = _arg[0];
+          return _this.originQueryParam[key];
+        };
+      })(this),
+      value: function(_arg) {
+        var key, value;
+        key = _arg[0], value = _arg[1];
+        return value;
+      },
+      type: "text",
+      "class": "form-control",
+      id: function(_arg) {
+        var key;
+        key = _arg[0];
+        return "query" + key;
+      }
+    }).on("change", (function(_this) {
+      return function(_arg) {
+        var defaultValue, key, value, valueToSet;
+        key = _arg[0];
+        value = $(d3.event.currentTarget).val();
+        defaultValue = $(d3.event.currentTarget).attr("placeholder");
+        valueToSet = value && value !== defaultValue ? value : defaultValue;
+        _this.model.setSearch(key, valueToSet);
+        return _this.updateUri($(d3.event.currentTarget), value && value !== defaultValue);
+      };
+    })(this));
+    return parameterDiv.append("div").attr("class", "col-sm-1").append("button").attr("class", "glyphicon glyphicon-remove btn btn-default").on("click", (function(_this) {
+      return function(_arg) {
+        var key;
+        key = _arg[0];
+        _this.model.removeSearch(key);
+        return _this.renderQueryParameters();
+      };
+    })(this));
+  };
+
+  BangRequestPanelView.prototype.onUpdateUri = function(ev) {
+    var defaultValue, key, value, valueToSet;
+    key = $(ev.currentTarget).parent().parent().data("key");
+    value = $(ev.currentTarget).val();
+    defaultValue = $(ev.currentTarget).attr("placeholder");
+    valueToSet = value && value !== defaultValue ? value : defaultValue;
+    this.model[key](valueToSet);
+    return this.updateUri($(ev.currentTarget), value && value !== defaultValue);
+  };
+
+  BangRequestPanelView.prototype.updateUri = function(divToUpdate, toggleOn) {
+    if (toggleOn) {
+      divToUpdate.siblings(".form-control-feedback").show();
+      divToUpdate.parent().parent().addClass("has-warning");
+    } else {
+      divToUpdate.siblings(".form-control-feedback").hide();
+      divToUpdate.parent().parent().removeClass("has-warning");
+    }
+    $("#" + queryStringBlockId).text(this.model.search() || "(no query string)");
+    return $("#" + refreshLinkId).attr("href", this.model.href());
+  };
+
+  BangRequestPanelView.prototype.onToggleQueryStringDetail = function() {
+    return $("#" + queryStringListId).toggle();
+  };
+
+  BangRequestPanelView.prototype.onAddNewQueryParameter = function() {
+    var newKey, newValue;
+    newKey = $("#" + keyInputId).val();
+    if (newKey) {
+      $("#" + keyInputId).parent().removeClass("has-error");
+    } else {
+      return $("#" + keyInputId).parent().addClass("has-error");
+    }
+    newValue = $("#" + valueInputId).val();
+    if (newValue) {
+      this.model.addSearch(newKey, newValue);
+    } else {
+      this.model.addSearch(newKey);
+    }
+    this.renderQueryParameters();
+    $("#" + keyInputId).val("");
+    return $("#" + valueInputId).val("");
+  };
+
+  return BangRequestPanelView;
 
 })(Backbone.View);

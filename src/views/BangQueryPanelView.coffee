@@ -31,8 +31,14 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###
-
 class BangQueryPanelView extends Backbone.View
+  initialize: ->
+    @textAreaId = "bangQuery"
+
+  events:
+    "click #runQuery": "doRunQuery"
+    "click #rest": "doReset"
+
   render: ->
     root  = d3.select(@el)
     @renderHeader root.append("div").attr("class", "panel-heading")
@@ -44,6 +50,24 @@ class BangQueryPanelView extends Backbone.View
   renderQueryForm: (body)->
     page = {
       textAreaPlaceholder: "Any Javascript Expression!"
-      textAreaId: "bangQuery"
+      textAreaId: @textAreaId
+      supportedFrameworks: [
+        {name: "jQuery", url: "http://jquery.com"}
+        {name: "d3.js", url: "http://d3js.org"}
+        {name: "underscore.js", url: "http://underscorejs.org"}
+        {name: "backbone.js", url: "http://backbonejs.org"}
+      ]
     }
     body.html window.Milk.render bangTemplates.BangQueryForm, page
+
+  doRunQuery: ->
+    chrome.runtime.sendMessage {stage: "query"}
+    query = $("#" + @textAreaId).val()
+    @trigger "runQuery", query
+
+  doReset: ->
+    $("#" + @textAreaId).val "bang"
+    bangJsonView.model.baseExpression = "bang"
+    bangJsonView.model.set {fragment: if bang instanceof Array then "bang[]" else "bang"}
+    bangJsonView.model.trigger "path:update"
+

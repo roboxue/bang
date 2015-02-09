@@ -4,10 +4,9 @@
         <div class="col-sm-10">
             <textarea class="form-control" id="{{textAreaId}}" placeholder="{{textAreaPlaceholder}}"></textarea>
             <span id="helpBlock" class="help-block">Supports native Javascript:
-                <a href="http://jquery.com">jQuery</a>,
-                <a href="http://d3js.org">d3.js</a>,
-                <a href="http://underscorejs.org">underscore.js</a>,
-                <a href="http://backbonejs.org">backbone.js</a>
+                {{#supportedFrameworks}}
+                    <a href="{{url}}">{{name}}</a>,
+                {{/supportedFrameworks}}
             </span>
         </div>
     </div>
