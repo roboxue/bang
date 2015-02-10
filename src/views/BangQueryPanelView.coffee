@@ -40,14 +40,6 @@ class BangQueryPanelView extends Backbone.View
     "click #reset": "doReset"
 
   render: ->
-    root  = d3.select(@el)
-    @renderHeader root.append("div").attr("class", "panel-heading")
-    @renderQueryForm root.append("div").attr("class", "panel-body")
-
-  renderHeader: (header)->
-    header.append("span").attr("class", "panel-title").html("Custom JavaScript Query")
-
-  renderQueryForm: (body)->
     page = {
       textAreaPlaceholder: "Any Javascript Expression!"
       textAreaId: @textAreaId
@@ -58,7 +50,7 @@ class BangQueryPanelView extends Backbone.View
         {name: "backbone.js", url: "http://backbonejs.org"}
       ]
     }
-    body.html window.Milk.render bangTemplates.BangQueryForm, page
+    @$el.html window.Milk.render bangTemplates.BangQueryForm, page
 
   doRunQuery: ->
     chrome.runtime.sendMessage {stage: "query"}

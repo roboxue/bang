@@ -18,7 +18,7 @@ module.exports = (grunt) ->
             production: true
     mustache:
       app:
-        src: 'src/templates/'
+        src: ['src/templates/*.mustache', 'src/extensions/chrome/*.mustache']
         dest: 'lib/templates.js'
         options:
           prefix: 'bangTemplates = '

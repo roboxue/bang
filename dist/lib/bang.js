@@ -324,7 +324,7 @@ BangJsonView = (function(_super) {
   };
 
   BangJsonView.prototype.renderHeader = function(header) {
-    return header.append("span").attr("class", "panel-title").html("JSON Navigator (Response has been stored into variable <code class='bang'>bang</code>)");
+    return header.append("span").attr("class", "panel-title").html("JSON Navigator");
   };
 
   BangJsonView.prototype.update = function(result) {
@@ -825,17 +825,6 @@ BangQueryPanelView = (function(_super) {
   };
 
   BangQueryPanelView.prototype.render = function() {
-    var root;
-    root = d3.select(this.el);
-    this.renderHeader(root.append("div").attr("class", "panel-heading"));
-    return this.renderQueryForm(root.append("div").attr("class", "panel-body"));
-  };
-
-  BangQueryPanelView.prototype.renderHeader = function(header) {
-    return header.append("span").attr("class", "panel-title").html("Custom JavaScript Query");
-  };
-
-  BangQueryPanelView.prototype.renderQueryForm = function(body) {
     var page;
     page = {
       textAreaPlaceholder: "Any Javascript Expression!",
@@ -856,7 +845,7 @@ BangQueryPanelView = (function(_super) {
         }
       ]
     };
-    return body.html(window.Milk.render(bangTemplates.BangQueryForm, page));
+    return this.$el.html(window.Milk.render(bangTemplates.BangQueryForm, page));
   };
 
   BangQueryPanelView.prototype.doRunQuery = function() {
@@ -949,7 +938,7 @@ BangRequestPanelView = (function(_super) {
   BangRequestPanelView.prototype.renderHeader = function(header) {
     var href;
     href = this.model.href();
-    return header.append("span").attr("class", "panel-title").html("Response from <code>" + href + "</code> stored into <code class='bang'>bang</code>");
+    return header.append("span").attr("class", "panel-title").html("Requested URL: <code>" + href + "</code>");
   };
 
   BangRequestPanelView.prototype.renderRequestUri = function(root) {

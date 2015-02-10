@@ -60,11 +60,17 @@ BangJsonRouter = (function(_super) {
   }
 
   BangJsonRouter.prototype.initialize = function() {
-    var fade, queryRow, responseRow, root, wrapper;
+    var fade, queryRow, responseRow, root, toggler, wrapper;
     console.info("Bang (v" + (chrome.runtime.getManifest().version) + ") will make your life with JSON easier!");
     chrome.runtime.sendMessage({
       stage: "load"
     });
+    toggler = d3.select("body").append("div").attr("id", "showBang").style({
+      position: "fixed",
+      top: 40,
+      right: 40,
+      display: "none"
+    }).append("button").attr("class", "btn btn-default btn-lg").text("Open Bang Workspace");
     wrapper = d3.select("body").append("div").attr("id", "bangWrapper").style({
       position: "absolute",
       height: window.innerHeight,
@@ -79,10 +85,10 @@ BangJsonRouter = (function(_super) {
       position: "fixed",
       height: window.innerHeight,
       width: "100%",
-      top: "0px",
-      left: "0px",
-      right: "0px",
-      bottom: "0px",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
       "z-index": 999,
       opacity: 0.6,
       "background-color": "#777777"
@@ -93,12 +99,13 @@ BangJsonRouter = (function(_super) {
     });
     root = wrapper.append("div").attr("class", "container-fluid").attr("id", "bang").style({
       position: "absolute",
-      top: "20px",
-      left: "10%",
-      width: "80%",
+      top: 60,
+      bottom: 130,
+      left: "3%",
+      width: "94%",
       "z-index": 1000
     });
-    this.renderNavbar(root.append("div").attr("class", "navbar navbar-default"));
+    this.renderNavbar(root.append("div").attr("class", "navbar navbar-default navbar-fixed-top"));
     queryRow = root.append("div").attr("class", "row");
     responseRow = root.append("div").attr("class", "row");
     jsonPath = new BangJsonPath([
@@ -114,7 +121,7 @@ BangJsonRouter = (function(_super) {
     });
     bangJsonView.render();
     bangQueryPanelView = new BangQueryPanelView({
-      el: queryRow.append("div").attr("class", "col-lg-12 col-md-12 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-default").attr("id", "queryPanel").node()
+      el: root.append("div").attr("class", "navbar navbar-default navbar-fixed-bottom").attr("id", "queryPanel").node()
     });
     bangQueryPanelView.render();
     bangRequestPanelView = new BangRequestPanelView({
@@ -167,9 +174,14 @@ BangJsonRouter = (function(_super) {
 
   BangJsonRouter.prototype.renderNavbar = function(navbar) {
     navbar.html(window.Milk.render(bangTemplates.BangNavbar, {}));
-    return $("#dismiss").click(function(ev) {
+    $("#dismissBang").click(function(ev) {
       ev.preventDefault();
-      return $("#bangWrapper").hide();
+      $("#bangWrapper").hide();
+      return $("#showBang").show();
+    });
+    return $("#showBang button").click(function() {
+      $("#bangWrapper").show();
+      return $("#showBang").hide();
     });
   };
 

@@ -52,7 +52,12 @@ class BangJsonRouter extends Backbone.Router
   initialize: ->
     console.info "Bang (v#{chrome.runtime.getManifest().version}) will make your life with JSON easier!"
     chrome.runtime.sendMessage {stage: "load"}
-    # TODO: Modify the root element so that this plugin can coexists with other JSON plugins
+    toggler = d3.select("body").append("div").attr("id", "showBang").style({
+      position: "fixed"
+      top: 40
+      right: 40
+      display: "none"
+    }).append("button").attr("class", "btn btn-default btn-lg").text("Open Bang Workspace")
     wrapper = d3.select("body").append("div").attr("id", "bangWrapper").style({
       position: "absolute"
       height: window.innerHeight
@@ -67,10 +72,10 @@ class BangJsonRouter extends Backbone.Router
       position: "fixed"
       height: window.innerHeight
       width: "100%"
-      top: "0px"
-      left: "0px"
-      right: "0px"
-      bottom: "0px"
+      top: 0
+      left: 0
+      right: 0
+      bottom: 0
       "z-index": 999
       opacity: 0.6
       "background-color": "#777777"
@@ -80,12 +85,13 @@ class BangJsonRouter extends Backbone.Router
       fade.style "height", window.innerHeight
     root = wrapper.append("div").attr("class", "container-fluid").attr("id", "bang").style({
       position: "absolute"
-      top: "20px"
-      left: "10%"
-      width: "80%"
+      top: 60
+      bottom: 130
+      left: "3%"
+      width: "94%"
       "z-index": 1000
     })
-    @renderNavbar root.append("div").attr("class", "navbar navbar-default")
+    @renderNavbar root.append("div").attr("class", "navbar navbar-default navbar-fixed-top")
     queryRow = root.append("div").attr("class", "row")
     responseRow = root.append("div").attr("class", "row")
     jsonPath = new BangJsonPath [new BangJsonPathFragment({fragment: if bang instanceof Array then "bang[]" else "bang"})], {baseExpression: "bang"}
@@ -95,7 +101,7 @@ class BangJsonRouter extends Backbone.Router
     }
     bangJsonView.render()
     bangQueryPanelView = new BangQueryPanelView {
-      el: queryRow.append("div").attr("class", "col-lg-12 col-md-12 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-default").attr("id", "queryPanel").node()
+      el: root.append("div").attr("class", "navbar navbar-default navbar-fixed-bottom").attr("id", "queryPanel").node()
     }
     bangQueryPanelView.render()
     bangRequestPanelView = new BangRequestPanelView {
@@ -137,9 +143,13 @@ class BangJsonRouter extends Backbone.Router
 
   renderNavbar: (navbar)->
     navbar.html window.Milk.render bangTemplates.BangNavbar, {}
-    $("#dismiss").click (ev)->
+    $("#dismissBang").click (ev)->
       ev.preventDefault()
       $("#bangWrapper").hide()
+      $("#showBang").show()
+    $("#showBang button").click ->
+      $("#bangWrapper").show()
+      $("#showBang").hide()
 
   importCss: (root)->
     root.append("link").attr({rel: "stylesheet", href: chrome.extension.getURL('css/bootstrap.css'), type: "text/css"})

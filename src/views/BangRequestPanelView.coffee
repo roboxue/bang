@@ -54,7 +54,7 @@ class BangRequestPanelView extends Backbone.View
 
   renderHeader: (header)->
     href = @model.href()
-    header.append("span").attr("class", "panel-title").html("Response from <code>#{href}</code> stored into <code class='bang'>bang</code>")
+    header.append("span").attr("class", "panel-title").html("Requested URL: <code>#{href}</code>")
 
   renderRequestUri: (root)->
     page = {

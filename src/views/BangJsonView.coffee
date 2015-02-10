@@ -75,7 +75,7 @@ class BangJsonView extends Backbone.View
     @listenTo @model, "change:result", @update
 
   renderHeader: (header)->
-    header.append("span").attr("class", "panel-title").html("JSON Navigator (Response has been stored into variable <code class='bang'>bang</code>)")
+    header.append("span").attr("class", "panel-title").html("JSON Navigator")
 
   update: (result)->
     @clear()
