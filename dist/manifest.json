@@ -3,7 +3,7 @@
 
   "name": "Bang JSON workspace",
   "short_name": "bang",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "icons": {
     "128": "bang.png"
   },
@@ -26,9 +26,9 @@
     "matches": [ "<all_urls>" ]
   } ],
   "web_accessible_resources": [
-    "lib/bootstrap/bootstrap.css",
-    "lib/bang.css",
-    "lib/fonts/*"
+    "css/bootstrap.css",
+    "css/bang.css",
+    "fonts/*"
   ],
   "background": {
     "scripts": ["background.js"]

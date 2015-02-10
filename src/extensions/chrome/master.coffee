@@ -31,22 +31,60 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###
+
+# Global variables that will be used in query
 bang = null
-bangUri = null
-originBangUri = null
 queryResult = null
+
+# Models
+bangUri = null
 jsonPath = null
+
+# Views
 bangJsonView = null
 bangQueryPanelView = null
 bangRequestPanelView = null
+
+# Miscellaneous
 originBody = null
 
 class BangJsonRouter extends Backbone.Router
   initialize: ->
-    console.log "Bang will make your life with JSON easier!"
+    console.info "Bang (v#{chrome.runtime.getManifest().version}) will make your life with JSON easier!"
     chrome.runtime.sendMessage {stage: "load"}
     # TODO: Modify the root element so that this plugin can coexists with other JSON plugins
-    root = d3.select("body").text("").append("div").attr("class", "container-fluid")
+    wrapper = d3.select("body").append("div").attr("id", "bangWrapper").style({
+      position: "absolute"
+      height: window.innerHeight
+      width: "100%"
+      top: "0px"
+      left: "0px"
+      right: "0px"
+      bottom: "0px"
+      "z-index": 999
+    })
+    fade = wrapper.append("div").attr("id", "bangFade").style({
+      position: "fixed"
+      height: window.innerHeight
+      width: "100%"
+      top: "0px"
+      left: "0px"
+      right: "0px"
+      bottom: "0px"
+      "z-index": 999
+      opacity: 0.6
+      "background-color": "#777777"
+    })
+    $(window).resize ->
+      wrapper.style "height", window.innerHeight
+      fade.style "height", window.innerHeight
+    root = wrapper.append("div").attr("class", "container-fluid").attr("id", "bang").style({
+      position: "absolute"
+      top: "20px"
+      left: "10%"
+      width: "80%"
+      "z-index": 1000
+    })
     @renderNavbar root.append("div").attr("class", "navbar navbar-default")
     queryRow = root.append("div").attr("class", "row")
     responseRow = root.append("div").attr("class", "row")
@@ -101,11 +139,11 @@ class BangJsonRouter extends Backbone.Router
     navbar.html window.Milk.render bangTemplates.BangNavbar, {}
     $("#dismiss").click (ev)->
       ev.preventDefault()
-      d3.select("body").text("").append("pre").html JSON.stringify(JSON.parse(originBody), null, 4)
+      $("#bangWrapper").hide()
 
   importCss: (root)->
-    root.append("link").attr({rel: "stylesheet", href: chrome.extension.getURL('lib/bootstrap/bootstrap.css'), type: "text/css"})
-    root.append("link").attr({rel: "stylesheet", href: chrome.extension.getURL('lib/bang.css'), type: "text/css"})
+    root.append("link").attr({rel: "stylesheet", href: chrome.extension.getURL('css/bootstrap.css'), type: "text/css"})
+    root.append("link").attr({rel: "stylesheet", href: chrome.extension.getURL('css/bang.css'), type: "text/css"})
 
 runQuery = (query)->
   try
@@ -119,12 +157,8 @@ runQuery = (query)->
 
 load = ->
   try
-    return unless document.body && (document.body.childNodes[0] && document.body.childNodes[0].tagName == "PRE" || document.body.children.length == 0)
-    originBody = if document.body.children.length then $("pre").text() else document.body
-    return unless originBody
     bang = JSON.parse originBody
     bangUri = new URI(document.location.href)
-    originBangUri = bangUri
   catch ex
     console.log "Document not valid json, bang will not work: #{ex}"
     console.log "Bang can't work on HTML and XML pages"
@@ -132,4 +166,7 @@ load = ->
   router = new BangJsonRouter()
   Backbone.history.start()
 
-load()
+if document.body && (document.body.childNodes[0] && document.body.childNodes[0].tagName == "PRE" || document.body.children.length == 0)
+  originBody = if document.body.children.length then $("pre").text() else document.body
+  if originBody
+    setTimeout(load, 200)

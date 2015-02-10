@@ -949,8 +949,7 @@ BangRequestPanelView = (function(_super) {
   BangRequestPanelView.prototype.renderHeader = function(header) {
     var href;
     href = this.model.href();
-    header.append("span").attr("class", "panel-title").html("Response from <code>" + href + "</code> stored into <code class='bang'>bang</code>");
-    return header.append("div").attr("class", "panel-toggle pull-right").text("toggle details");
+    return header.append("span").attr("class", "panel-title").html("Response from <code>" + href + "</code> stored into <code class='bang'>bang</code>");
   };
 
   BangRequestPanelView.prototype.renderRequestUri = function(root) {

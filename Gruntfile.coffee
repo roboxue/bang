@@ -79,15 +79,13 @@ module.exports = (grunt) ->
     copy:
       dist:
         files: [
-          {src: ['*.png'], dest: 'dist/'}
-          {src: ['lib/**/*.css'], dest: 'dist/', filter: 'isFile'}
-          {src: 'lib/bootstrap/glyphicons-halflings-regular.eot', dest: 'dist/lib/fonts/glyphicons-halflings-regular.eot'}
-          {src: 'lib/bootstrap/glyphicons-halflings-regular.svg', dest: 'dist/lib/fonts/glyphicons-halflings-regular.svg'}
-          {src: 'lib/bootstrap/glyphicons-halflings-regular.ttf', dest: 'dist/lib/fonts/glyphicons-halflings-regular.ttf'}
-          {src: 'lib/bootstrap/glyphicons-halflings-regular.woff', dest: 'dist/lib/fonts/glyphicons-halflings-regular.woff'}
-          {src: 'lib/bootstrap/glyphicons-halflings-regular.woff2', dest: 'dist/lib/fonts/glyphicons-halflings-regular.woff2'}
+          {expand: true, src: ['*.png'], dest: 'dist/'}
+          {expand: true, flatten: true, cwd: 'lib', src: ['**/*.css'], dest: 'dist/css', filter: 'isFile'}
+          {expand: true, cwd: 'lib/bootstrap/', src: [
+            'glyphicons-halflings-regular.eot', 'glyphicons-halflings-regular.svg', 'glyphicons-halflings-regular.ttf', 'glyphicons-halflings-regular.woff', 'glyphicons-halflings-regular.woff2'
+          ], dest: 'dist/fonts'}
           {expand: true, cwd: 'src/extensions/chrome/', src: ['manifest.json', 'background.js'], dest: 'dist/'}
-          {src: ['lib/lib.min.js', 'lib/bang.js', 'lib/master.js'], dest: 'dist/'}
+          {expand: true, src: ['lib/lib.min.js', 'lib/bang.js', 'lib/master.js'], dest: 'dist/'}
         ]
     watch:
       app:
