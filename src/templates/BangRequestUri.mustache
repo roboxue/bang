@@ -1,22 +1,22 @@
-<div class="form-group" data-key="protocol">
+<div class="form-group urlComponent" data-key="protocol">
     <label class="control-label col-sm-2">Protocol</label>
     <div class="col-sm-10"><p class="form-control-static">{{protocol}}</p></div>
 </div>
-<div class="form-group has-feedback" data-key="hostname">
+<div class="form-group urlComponent has-feedback" data-key="hostname">
     <label for="uriHostname" class="control-label col-sm-2">Hostname</label>
     <div class="col-sm-10">
-        <input type="text" class="form-control" id="uriHostname" placeholder="{{hostname}}">
+        <input type="text" class="form-control" id="uriHostname" placeholder="{{hostname}}" value="{{hostname}}">
         <span class="glyphicon glyphicon-warning-sign form-control-feedback" aria-hidden="true"></span>
     </div>
 </div>
-<div class="form-group has-feedback" data-key="port">
+<div class="form-group urlComponent has-feedback" data-key="port">
     <label for="uriPort" class="control-label col-sm-2">Port</label>
     <div class="col-sm-10">
-        <input type="number" min="0" max="99999" class="form-control" id="uriPort" placeholder="{{#port}}{{port}}{{/port}}{{#port}}80{{/port}} {{#port}}value="{{port}}"{{/port}}">
+        <input type="number" min="0" max="99999" class="form-control" id="uriPort" placeholder="{{#port}}{{port}}{{/port}}{{^port}}80{{/port}} {{#port}}value="{{port}}"{{/port}}">
         <span class="glyphicon glyphicon-warning-sign form-control-feedback" aria-hidden="true"></span>
     </div>
 </div>
-<div class="form-group has-feedback" data-key="path">
+<div class="form-group urlComponent has-feedback" data-key="path">
     <label for="uriPath" class="col-sm-2 control-label">Path
     </label>
     <div class="col-sm-10">
@@ -24,7 +24,7 @@
         <span class="glyphicon glyphicon-warning-sign form-control-feedback" aria-hidden="true"></span>
     </div>
 </div>
-<div class="form-group has-feedback" data-key="hash">
+<div class="form-group urlComponent has-feedback" data-key="hash">
     <label for="uriHash" class="col-sm-2 control-label">Hash
     </label>
     <div class="col-sm-10">
@@ -49,10 +49,5 @@
     </div>
     <div class="col-sm-1">
         <button class="btn btn-default control-label glyphicon glyphicon-plus"></button>
-    </div>
-</div>
-<div class="form-group">
-    <div class="col-sm-offset-2 col=sm-10">
-        <a id="{{refreshLinkId}}">Refresh</a>
     </div>
 </div>

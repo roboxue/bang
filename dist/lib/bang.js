@@ -919,11 +919,12 @@ BangRequestPanelView = (function(_super) {
     this.queryStringListId = "queryParameters";
     this.keyInputId = "newKey";
     this.valueInputId = "newValue";
-    return this.refreshLinkId = "refreshLink";
+    return this.refreshUrlId = "refreshUrl";
   };
 
   BangRequestPanelView.prototype.events = {
-    "change .form-group[data-key] input": "onUpdateUri",
+    "change .form-group.urlComponent[data-key] input": "onUpdateUri",
+    "change .form-group.queryParameter[data-key] input": "onUpdateQueryParameter",
     "click #uriSearch": "onToggleQueryStringDetail",
     "click #addNewQueryParameter button": "onAddNewQueryParameter"
   };
@@ -932,13 +933,18 @@ BangRequestPanelView = (function(_super) {
     root = d3.select(this.el);
     this.originQueryParam = this.model.search(true);
     this.renderHeader(root.append("div").attr("class", "panel-heading"));
-    return this.renderRequestUri(root.append("div").attr("class", "form-horizontal panel-footer").attr("id", "uri"));
+    this.renderRequestUri(root.append("div").attr("class", "form-horizontal panel-footer").attr("id", "uri"));
+    return this.renderFooter(root.append("div").attr("class", "panel-footer"));
   };
 
   BangRequestPanelView.prototype.renderHeader = function(header) {
     var href;
     href = this.model.href();
     return header.append("span").attr("class", "panel-title").html("Requested URL: <code>" + href + "</code>");
+  };
+
+  BangRequestPanelView.prototype.renderFooter = function(footer) {
+    return footer.append("span").attr("class", "panel-title").attr("id", this.refreshUrlId);
   };
 
   BangRequestPanelView.prototype.renderRequestUri = function(root) {
@@ -952,8 +958,7 @@ BangRequestPanelView = (function(_super) {
       queryStringBlockId: this.queryStringBlockId,
       queryStringListId: this.queryStringListId,
       keyInputId: this.keyInputId,
-      valueInputId: this.valueInputId,
-      refreshLinkId: this.refreshLinkId
+      valueInputId: this.valueInputId
     };
     root.html(window.Milk.render(bangTemplates.BangRequestUri, page));
     root.selectAll(".form-control-feedback").style("display", "none");
@@ -962,7 +967,7 @@ BangRequestPanelView = (function(_super) {
 
   BangRequestPanelView.prototype.renderQueryParameters = function() {
     var inputDiv, parameterDiv;
-    $("#" + this.refreshLinkId).attr("href", this.model.href());
+    this.updateRefreshLink();
     $("#" + this.queryStringBlockId).text(this.model.search() || "(no query string)");
     parameterDiv = d3.select("#" + this.queryStringListId).text("").selectAll("div.form-group").data(_.pairs(this.model.search(true))).enter().append("div").attr("class", "form-group has-feedback queryParameter").attr("data-key", function(_arg) {
       var key;
@@ -1000,17 +1005,7 @@ BangRequestPanelView = (function(_super) {
         key = _arg[0];
         return "query" + key;
       }
-    }).on("change", (function(_this) {
-      return function(_arg) {
-        var defaultValue, key, value, valueToSet;
-        key = _arg[0];
-        value = $(d3.event.currentTarget).val();
-        defaultValue = $(d3.event.currentTarget).attr("placeholder");
-        valueToSet = value && value !== defaultValue ? value : defaultValue;
-        _this.model.setSearch(key, valueToSet);
-        return _this.updateUri($(d3.event.currentTarget), value && value !== defaultValue);
-      };
-    })(this));
+    });
     return parameterDiv.append("div").attr("class", "col-sm-1").append("button").attr("class", "glyphicon glyphicon-remove btn btn-default").on("click", (function(_this) {
       return function(_arg) {
         var key;
@@ -1031,6 +1026,16 @@ BangRequestPanelView = (function(_super) {
     return this.updateUri($(ev.currentTarget), value && value !== defaultValue);
   };
 
+  BangRequestPanelView.prototype.onUpdateQueryParameter = function(ev) {
+    var defaultValue, key, value, valueToSet;
+    key = $(ev.currentTarget).parent().parent().data("key");
+    value = $(ev.currentTarget).val();
+    defaultValue = $(ev.currentTarget).attr("placeholder");
+    valueToSet = value && value !== defaultValue ? value : defaultValue;
+    this.model.setSearch(key, valueToSet);
+    return this.updateUri($(ev.currentTarget), value && value !== defaultValue);
+  };
+
   BangRequestPanelView.prototype.updateUri = function(divToUpdate, showFeedbackIcon) {
     if (showFeedbackIcon) {
       divToUpdate.siblings(".form-control-feedback").show();
@@ -1040,7 +1045,11 @@ BangRequestPanelView = (function(_super) {
       divToUpdate.parent().parent().removeClass("has-warning");
     }
     $("#" + this.queryStringBlockId).text(this.model.search() || "(no query string)");
-    return $("#" + this.refreshLinkId).attr("href", this.model.href());
+    return this.updateRefreshLink();
+  };
+
+  BangRequestPanelView.prototype.updateRefreshLink = function() {
+    return $("#" + this.refreshUrlId).html("Updated URL: <a href='" + (this.model.href()) + "'><code>" + (this.model.href()) + "</code></a>");
   };
 
   BangRequestPanelView.prototype.onToggleQueryStringDetail = function() {

@@ -39,10 +39,11 @@ class BangRequestPanelView extends Backbone.View
     @queryStringListId = "queryParameters"
     @keyInputId = "newKey"
     @valueInputId = "newValue"
-    @refreshLinkId = "refreshLink"
+    @refreshUrlId = "refreshUrl"
 
   events:
-    "change .form-group[data-key] input": "onUpdateUri"
+    "change .form-group.urlComponent[data-key] input": "onUpdateUri"
+    "change .form-group.queryParameter[data-key] input": "onUpdateQueryParameter"
     "click #uriSearch": "onToggleQueryStringDetail"
     "click #addNewQueryParameter button": "onAddNewQueryParameter"
 
@@ -51,10 +52,14 @@ class BangRequestPanelView extends Backbone.View
     @originQueryParam = @model.search(true)
     @renderHeader root.append("div").attr("class", "panel-heading")
     @renderRequestUri root.append("div").attr("class", "form-horizontal panel-footer").attr("id", "uri")
+    @renderFooter root.append("div").attr("class", "panel-footer")
 
   renderHeader: (header)->
     href = @model.href()
     header.append("span").attr("class", "panel-title").html("Requested URL: <code>#{href}</code>")
+
+  renderFooter: (footer)->
+    footer.append("span").attr("class", "panel-title").attr("id", @refreshUrlId)
 
   renderRequestUri: (root)->
     page = {
@@ -67,14 +72,13 @@ class BangRequestPanelView extends Backbone.View
       queryStringListId: @queryStringListId
       keyInputId: @keyInputId
       valueInputId: @valueInputId
-      refreshLinkId: @refreshLinkId
     }
     root.html window.Milk.render bangTemplates.BangRequestUri, page
     root.selectAll(".form-control-feedback").style("display", "none")
     @renderQueryParameters()
 
   renderQueryParameters: ->
-    $("#" + @refreshLinkId).attr("href", @model.href())
+    @updateRefreshLink()
     $("#" + @queryStringBlockId).text @model.search() or "(no query string)"
     parameterDiv = d3.select("#" + @queryStringListId).text("").selectAll("div.form-group").data(_.pairs(@model.search(true))).enter()
     .append("div").attr("class", "form-group has-feedback queryParameter").attr("data-key", ([key])-> key)
@@ -87,12 +91,7 @@ class BangRequestPanelView extends Backbone.View
       type: "text"
       class: "form-control"
       id: ([key])-> "query#{key}"
-    ).on "change", ([key])=>
-      value = $(d3.event.currentTarget).val()
-      defaultValue = $(d3.event.currentTarget).attr("placeholder")
-      valueToSet = if value and value isnt defaultValue then value else defaultValue
-      @model.setSearch(key, valueToSet)
-      @updateUri $(d3.event.currentTarget), (value and value isnt defaultValue)
+    )
     parameterDiv.append("div").attr("class", "col-sm-1").append("button").attr("class", "glyphicon glyphicon-remove btn btn-default").on "click", ([key])=>
       @model.removeSearch key
       @renderQueryParameters()
@@ -105,6 +104,14 @@ class BangRequestPanelView extends Backbone.View
     @model[key](valueToSet)
     @updateUri $(ev.currentTarget), (value and value isnt defaultValue)
 
+  onUpdateQueryParameter: (ev)->
+    key = $(ev.currentTarget).parent().parent().data("key")
+    value = $(ev.currentTarget).val()
+    defaultValue = $(ev.currentTarget).attr("placeholder")
+    valueToSet = if value and value isnt defaultValue then value else defaultValue
+    @model.setSearch(key, valueToSet)
+    @updateUri $(ev.currentTarget), (value and value isnt defaultValue)
+
   updateUri: (divToUpdate, showFeedbackIcon)->
     if showFeedbackIcon
       divToUpdate.siblings(".form-control-feedback").show()
@@ -113,7 +120,10 @@ class BangRequestPanelView extends Backbone.View
       divToUpdate.siblings(".form-control-feedback").hide()
       divToUpdate.parent().parent().removeClass("has-warning")
     $("#" + @queryStringBlockId).text @model.search() or "(no query string)"
-    $("#" + @refreshLinkId).attr("href", @model.href())
+    @updateRefreshLink()
+
+  updateRefreshLink: ->
+    $("#" + @refreshUrlId).html("Updated URL: <a href='#{@model.href()}'><code>#{@model.href()}</code></a>")
 
   onToggleQueryStringDetail: ->
     $("#" + @queryStringListId).toggle()
