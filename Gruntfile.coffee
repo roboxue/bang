@@ -1,6 +1,6 @@
 module.exports = (grunt) ->
-  versionNumber = grunt.file.readJSON('manifest.json').version
-  console.log 'Version Number ' + versionNumber
+  chromeExtensionVersionNumber = grunt.file.readJSON('src/extensions/chrome/manifest.json').version
+  console.log 'Chrome Extension Version Number ' + chromeExtensionVersionNumber
 
   grunt.initConfig
     clean:
@@ -34,7 +34,7 @@ module.exports = (grunt) ->
             'src/collections/*.coffee'
             'src/views/*.coffee'
           ]
-          'lib/master.js': 'src/master.coffee'
+          'lib/master.js': 'src/extensions/chrome/master.coffee'
           'lib/milk/milk.js': 'node_modules/milk/milk.coffee'
       testClient:
         options:
@@ -86,12 +86,12 @@ module.exports = (grunt) ->
           {src: 'lib/bootstrap/glyphicons-halflings-regular.ttf', dest: 'dist/lib/fonts/glyphicons-halflings-regular.ttf'}
           {src: 'lib/bootstrap/glyphicons-halflings-regular.woff', dest: 'dist/lib/fonts/glyphicons-halflings-regular.woff'}
           {src: 'lib/bootstrap/glyphicons-halflings-regular.woff2', dest: 'dist/lib/fonts/glyphicons-halflings-regular.woff2'}
-          {src: ['manifest.json'], dest: 'dist/'}
-          {src: ['src/background.js', 'lib/lib.min.js', 'lib/bang.js', 'lib/master.js'], dest: 'dist/'}
+          {expand: true, cwd: 'src/extensions/chrome/', src: ['manifest.json', 'background.js'], dest: 'dist/'}
+          {src: ['lib/lib.min.js', 'lib/bang.js', 'lib/master.js'], dest: 'dist/'}
         ]
     watch:
       app:
-        files: ['src/**/*.coffee', '**/*.styl', 'src/templates/*.mustache', 'manifest.json']
+        files: ['src/**/*.coffee', '**/*.styl', 'src/templates/*.mustache', 'src/extensions/chrome/*']
         tasks: ['mustache', 'coffee:app', 'stylus', 'lineremover', 'concat', 'uglify', 'copy']
       testClient:
         files: ['test/client/**/*.coffee']
@@ -99,7 +99,7 @@ module.exports = (grunt) ->
     compress:
       main:
         options:
-          archive: "release/bang_#{versionNumber}.zip"
+          archive: "release/bang_#{chromeExtensionVersionNumber}.zip"
           mode: "zip"
         files: [
           {expand: true, cwd: 'dist/', src: ['**'], dest: "bang/"}
