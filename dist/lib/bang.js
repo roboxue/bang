@@ -574,14 +574,15 @@ BangJsonView = (function(_super) {
   };
 
   BangJsonView.prototype.updateToolbar = function() {
-    var path, toolbar;
+    var keyName, path, toolbar;
+    keyName = this.model.last().getArrayKeyName().keyName;
     path = this.model;
     toolbar = this.arrayToolbar.append("div").attr("class", "btn-group").attr("role", "group");
     toolbar.append("button").attr("class", "btn btn-default").html("<span class='glyphicon glyphicon-list-alt' aria-hidden='true'></span> Count By Value").on("click", function() {
       d3.event.preventDefault();
       path.pop();
       path.push(new BangJsonPathFragment({
-        fragment: "countBy:" + key
+        fragment: "countBy:" + keyName
       }));
       return path.trigger("change:path");
     });
@@ -589,7 +590,7 @@ BangJsonView = (function(_super) {
       d3.event.preventDefault();
       path.pop();
       path.push(new BangJsonPathFragment({
-        fragment: "countByType:" + key
+        fragment: "countByType:" + keyName
       }));
       return path.trigger("change:path");
     });

@@ -261,17 +261,18 @@ class BangJsonView extends Backbone.View
       @updateToolbar()
 
   updateToolbar: ->
+    { keyName } = @model.last().getArrayKeyName()
     path = @model
     toolbar = @arrayToolbar.append("div").attr("class", "btn-group").attr("role", "group")
     toolbar.append("button").attr("class", "btn btn-default").html("<span class='glyphicon glyphicon-list-alt' aria-hidden='true'></span> Count By Value").on "click", ->
       d3.event.preventDefault()
       path.pop()
-      path.push new BangJsonPathFragment {fragment: "countBy:#{key}"}
+      path.push new BangJsonPathFragment {fragment: "countBy:#{keyName}"}
       path.trigger "change:path"
     toolbar.append("button").attr("class", "btn btn-default").html("<span class='glyphicon glyphicon-list-alt' aria-hidden='true'></span> Count By Type").on "click", ->
       d3.event.preventDefault()
       path.pop()
-      path.push new BangJsonPathFragment {fragment: "countByType:#{key}"}
+      path.push new BangJsonPathFragment {fragment: "countByType:#{keyName}"}
       path.trigger "change:path"
 
   updateArraySchemaList: (keyStats, array)->
