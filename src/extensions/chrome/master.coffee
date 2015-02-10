@@ -110,7 +110,7 @@ class BangJsonRouter extends Backbone.Router
     }
     bangRequestPanelView.render()
     @importCss root
-
+    # Bind listeners and click events
     @listenTo jsonPath, "change:path", ->
       query = jsonPath.getQuery()
       {error, result} = runQuery query
@@ -119,7 +119,6 @@ class BangJsonRouter extends Backbone.Router
       else
         bangQueryPanelView.updateQuery jsonPath.getQuery(null, true)
         jsonPath.trigger "change:result", result
-
     @listenTo bangQueryPanelView, "change:query", (query)->
       bangJsonView.clear()
       { error, result } = runQuery query
@@ -133,23 +132,23 @@ class BangJsonRouter extends Backbone.Router
         else
           jsonPath.set {fragment: "queryResult"}
         jsonPath.trigger "change:result", result
-
     @listenTo bangQueryPanelView, "reset:query", ->
       jsonPath.baseExpression = "bang"
       jsonPath.set {fragment: if bang instanceof Array then "bang[]" else "bang"}
       jsonPath.trigger "change:path"
-
+    $("#dismissBang").click (ev)->
+      ev.preventDefault()
+      chrome.runtime.sendMessage {stage: "dismiss"}
+      $("#bangWrapper").hide()
+      $("#showBang").show()
+    $("#showBang button").click ->
+      chrome.runtime.sendMessage {stage: "activate"}
+      $("#bangWrapper").show()
+      $("#showBang").hide()
     jsonPath.trigger "change:path"
 
   renderNavbar: (navbar)->
     navbar.html window.Milk.render bangTemplates.BangNavbar, {}
-    $("#dismissBang").click (ev)->
-      ev.preventDefault()
-      $("#bangWrapper").hide()
-      $("#showBang").show()
-    $("#showBang button").click ->
-      $("#bangWrapper").show()
-      $("#showBang").hide()
 
   importCss: (root)->
     root.append("link").attr({rel: "stylesheet", href: chrome.extension.getURL('css/bootstrap.css'), type: "text/css"})

@@ -9,9 +9,19 @@ _gaq.push(['_setAccount', 'UA-XXXXXXXX-X']);
 
 chrome.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
-        if (request.stage == "load")
-            _gaq.push(['_trackPageview', '/v' + chrome.runtime.getManifest().version]);
-        else if (request.stage == "query")
-            _gaq.push(['_trackEvent', 'CustomQuery', 'Execute'])
+        switch(request.stage) {
+            case "load":
+                _gaq.push(['_trackPageview', '/v' + chrome.runtime.getManifest().version]);
+                break;
+            case "query":
+                _gaq.push(['_trackEvent', 'CustomQuery', 'Execute']);
+                break;
+            case "dismiss":
+                _gaq.push(['_trackEvent', 'Workspace', 'Dismiss']);
+                break;
+            case "activate":
+                _gaq.push(['_trackEvent', 'Workspace', 'Activate']);
+                break;
+        }
     }
 );

@@ -169,20 +169,26 @@ BangJsonRouter = (function(_super) {
       });
       return jsonPath.trigger("change:path");
     });
+    $("#dismissBang").click(function(ev) {
+      ev.preventDefault();
+      chrome.runtime.sendMessage({
+        stage: "dismiss"
+      });
+      $("#bangWrapper").hide();
+      return $("#showBang").show();
+    });
+    $("#showBang button").click(function() {
+      chrome.runtime.sendMessage({
+        stage: "activate"
+      });
+      $("#bangWrapper").show();
+      return $("#showBang").hide();
+    });
     return jsonPath.trigger("change:path");
   };
 
   BangJsonRouter.prototype.renderNavbar = function(navbar) {
-    navbar.html(window.Milk.render(bangTemplates.BangNavbar, {}));
-    $("#dismissBang").click(function(ev) {
-      ev.preventDefault();
-      $("#bangWrapper").hide();
-      return $("#showBang").show();
-    });
-    return $("#showBang button").click(function() {
-      $("#bangWrapper").show();
-      return $("#showBang").hide();
-    });
+    return navbar.html(window.Milk.render(bangTemplates.BangNavbar, {}));
   };
 
   BangJsonRouter.prototype.importCss = function(root) {
