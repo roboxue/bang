@@ -50,7 +50,7 @@ class BangQueryPanelView extends Backbone.View
         {name: "backbone.js", url: "http://backbonejs.org"}
       ]
     }
-    @$el.html window.Milk.render bangTemplates.BangQueryForm, page
+    @$el.html window.Milk.render bangExtensionTemplates.BangQueryForm, page
 
   doRunQuery: ->
     chrome.runtime.sendMessage {stage: "query"}

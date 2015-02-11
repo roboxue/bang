@@ -1,143 +1,12 @@
-var BangJsonPath, BangJsonPathFragment, BangJsonView, BangQueryPanelView, BangRequestPanelView, prettyPrint, replacer,
-  __hasProp = {}.hasOwnProperty,
-  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
-
-BangJsonPathFragment = (function(_super) {
-  var arrayAndArrayElementRx, arrayElementRx, arrayRx, keyRx;
-
-  __extends(BangJsonPathFragment, _super);
-
-  function BangJsonPathFragment() {
-    return BangJsonPathFragment.__super__.constructor.apply(this, arguments);
-  }
-
-  keyRx = /(^|^countBy|^countByType):(.+)$/;
-
-  arrayRx = /^(.+)\[]$/;
-
-  arrayElementRx = /^(.+)\[(\d+)]$/;
-
-  arrayAndArrayElementRx = /^(.+)\[\d*]$/;
-
-  keyRx = /(^|^countBy|^countByType):(.+)$/;
-
-  BangJsonPathFragment.prototype.getPathFragmentForKey = function(data, key) {
-    if (_.isArray(data[key])) {
-      if (data[key].length === 1) {
-        return new BangJsonPathFragment({
-          fragment: key + "[0]"
-        });
-      } else {
-        return new BangJsonPathFragment({
-          fragment: key + "[]"
-        });
-      }
-    } else {
-      return new BangJsonPathFragment({
-        fragment: key
-      });
-    }
+bangTemplates = {
+    "BangQueryForm" : '<div class="container-fluid"><div class="collapse navbar-collapse row"><div class="form-horizontal navbar-left col-md-10"><div class="form-group"><label for="{{textAreaId}}" class="col-md-3 control-label"><span class="navbar-text">Javascript Query</span></label><div class="col-md-9"><textarea class="form-control" id="{{textAreaId}}" placeholder="{{textAreaPlaceholder}}"></textarea><span id="helpBlock" class="help-block">Raw JSON Object is in variable <code class="bang">bang</code>. Supports native Javascript, plus&nbsp;{{#supportedFrameworks}}<a href="{{url}}">{{name}}</a>&nbsp;{{/supportedFrameworks}}</span></div></div></div><div class="navbar-right"><button type="submit" class="btn btn-default" id="runQuery">Run it!</button><button type="reset" class="btn btn-default" id="reset">Reset</button></div></div></div>',
+    "BangRequestUri" : '<div class="form-group urlComponent" data-key="protocol"><label class="control-label col-sm-2">Protocol</label><div class="col-sm-10"><p id="uriProtocol" class="form-control-static">{{protocol}}</p></div></div><div class="form-group urlComponent has-feedback" data-key="hostname"><label for="uriHostname" class="control-label col-sm-2">Hostname</label><div class="col-sm-10"><input type="text" class="form-control" id="uriHostname" placeholder="{{hostname}}" value="{{hostname}}"><span class="glyphicon glyphicon-warning-sign form-control-feedback" aria-hidden="true"></span></div></div><div class="form-group urlComponent has-feedback" data-key="port"><label for="uriPort" class="control-label col-sm-2">Port</label><div class="col-sm-10"><input type="number" min="0" max="99999" class="form-control" id="uriPort" placeholder="{{#port}}{{port}}{{/port}}{{^port}}80{{/port}}" {{#port}}value="{{port}}"{{/port}}><span class="glyphicon glyphicon-warning-sign form-control-feedback" aria-hidden="true"></span></div></div><div class="form-group urlComponent has-feedback" data-key="path"><label for="uriPath" class="col-sm-2 control-label">Path</label><div class="col-sm-10"><input type="text" class="form-control" id="uriPath" placeholder="{{#path}}{{path}}{{/path}}{{^path}}/path{{/path}}" {{#path}}value="{{path}}"{{/path}}><span class="glyphicon glyphicon-warning-sign form-control-feedback" aria-hidden="true"></span></div></div><div class="form-group urlComponent has-feedback" data-key="hash"><label for="uriHash" class="col-sm-2 control-label">Hash</label><div class="col-sm-10"><input type="text" class="form-control" id="uriHash" placeholder="{{#hash}}{{hash}}{{/hash}}{{^hash}}#hash{{/hash}}" {{#hash}}value="{{hash}}"{{/hash}}><span class="glyphicon glyphicon-warning-sign form-control-feedback" aria-hidden="true"></span></div></div><div class="form-group"><label class="control-label col-sm-2">Query String</label><div class="col-sm-10"><pre class="form-control-static" id="{{queryStringBlockId}}"></pre></div></div><div id="{{queryStringListId}}"></div><div class="form-group" id="addNewQueryParameter"><div class="col-sm-offset-2 col-sm-2"><input type="text" class="form-control" id="{{keyInputId}}" placeholder="new key"></div><div class="col-sm-7"><input type="text" class="form-control" id="{{valueInputId}}" placeholder="new value"></div><div class="col-sm-1"><button class="btn btn-default control-label glyphicon glyphicon-plus"></button></div></div>',
+    "done": "true"
   };
-
-  BangJsonPathFragment.prototype.getQueryFragment = function() {
-    var arrayName, fullExpression, keyName, method, type, _ref, _ref1;
-    type = this.getFragmentType();
-    switch (type) {
-      case "ArrayRoot":
-        _ref = this.get("fragment").match(arrayRx), fullExpression = _ref[0], arrayName = _ref[1];
-        return {
-          value: arrayName
-        };
-      case "ArrayKey":
-        _ref1 = this.get("fragment").match(keyRx), fullExpression = _ref1[0], method = _ref1[1], keyName = _ref1[2];
-        switch (method) {
-          case "countBy":
-            return {
-              underscore: "countBy('" + keyName + "')"
-            };
-          case "countByType":
-            return {
-              underscore: "countBy(function(row){ return typeof row['" + keyName + "']; })"
-            };
-          default:
-            return {
-              underscore: "pluck('" + keyName + "')"
-            };
-        }
-        break;
-      default:
-        return {
-          value: this.get("fragment")
-        };
-    }
-  };
-
-  BangJsonPathFragment.prototype.getFragmentType = function() {
-    if (arrayRx.test(this.get("fragment"))) {
-      return "ArrayRoot";
-    } else if (arrayElementRx.test(this.get("fragment"))) {
-      return "ArrayElement";
-    } else if (keyRx.test(this.get("fragment"))) {
-      return "ArrayKey";
-    } else {
-      return "Value";
-    }
-  };
-
-  BangJsonPathFragment.prototype.getArrayKeyName = function() {
-    var fullExpression, keyName, method, _ref;
-    if (keyRx.test(this.get("fragment"))) {
-      _ref = this.get("fragment").match(keyRx), fullExpression = _ref[0], method = _ref[1], keyName = _ref[2];
-      return {
-        method: method,
-        keyName: keyName
-      };
-    }
-  };
-
-  BangJsonPathFragment.prototype.getArrayIndex = function() {
-    var arrayIndex, arrayName, fullExpression, _ref;
-    if (arrayElementRx.test(this.get("fragment"))) {
-      _ref = this.get("fragment").match(arrayElementRx), fullExpression = _ref[0], arrayName = _ref[1], arrayIndex = _ref[2];
-      return {
-        arrayName: arrayName,
-        index: parseInt(arrayIndex)
-      };
-    }
-  };
-
-  BangJsonPathFragment.prototype.getDisplayName = function() {
-    return this.get("fragment");
-  };
-
-  BangJsonPathFragment.prototype.getBaseFragment = function() {
-    var arrayName, fullExpression, fullName, keyName, method, _ref, _ref1;
-    if (arrayElementRx.test(this.get("fragment"))) {
-      _ref = this.get("fragment").match(arrayElementRx), fullName = _ref[0], arrayName = _ref[1];
-      return arrayName + "[]";
-    } else if (keyRx.test(this.get("fragment"))) {
-      _ref1 = this.get("fragment").match(keyRx), fullExpression = _ref1[0], method = _ref1[1], keyName = _ref1[2];
-      if (method) {
-        return ":" + keyName;
-      }
-    }
-  };
-
-  BangJsonPathFragment.prototype.getArrayFragment = function(index) {
-    var arrayName, fullName, _ref;
-    if (arrayAndArrayElementRx.test(this.get("fragment"))) {
-      _ref = this.get("fragment").match(arrayAndArrayElementRx), fullName = _ref[0], arrayName = _ref[1];
-      return arrayName + ("[" + index + "]");
-    }
-  };
-
-  return BangJsonPathFragment;
-
-})(Backbone.Model);
-
 
 /*
-Bang.coffee, frontend JSON workspace, a chrome extension
+BangJsonPath.coffee
+  A collection of BangJsonPath, which composes a javascript expression that queries the root object
 
 Copyright (c) 2015, Groupon, Inc.
 All rights reserved.
@@ -169,6 +38,15 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+var Backbone, BangJsonPath, BangJsonPathFragment, BangJsonView, BangQueryPanelView, BangRequestPanelView, prettyPrint, replacer, _,
+  __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+if (typeof require !== "undefined" && require !== null) {
+  Backbone = require('backbone');
+  _ = require('underscore');
+  BangJsonPathFragment = require('../models/BangJsonPathFragment');
+}
 
 BangJsonPath = (function(_super) {
   __extends(BangJsonPath, _super);
@@ -179,6 +57,15 @@ BangJsonPath = (function(_super) {
 
   BangJsonPath.prototype.model = BangJsonPathFragment;
 
+
+  /*
+   * Initialize the path with a collection of path fragments. Need at least one
+   * The first path fragment in the collection will be treated as the root object
+   * BaseExpression option will override the display name of the root object
+   * BaseExpression is useful to hide a complex query under a friendly name
+   * @param {[BangJsonPathFragment], {baseExpression}}
+   */
+
   BangJsonPath.prototype.initialize = function(models, option) {
     if (option && option.baseExpression) {
       return this.baseExpression = option.baseExpression;
@@ -186,6 +73,15 @@ BangJsonPath = (function(_super) {
       return this.baseExpression = models[0].getDisplayName();
     }
   };
+
+
+  /*
+   * Connect each PathFragment in the array to form a valid javascript expression.
+   * Wrap with underscore chain function if some query fragment needs an underscore function
+   * Path: optional BangJsonPathFragment array. If path is provided, getQuery will work on this array. Otherwise will be applied onto itself
+   * For Display: If set to true, Use base expression as the first component in the query. Otherwise use the value of first component
+   * @param {[BangJsonPathFragment], Bool}
+   */
 
   BangJsonPath.prototype.getQuery = function(path, forDisplay) {
     var baseExpression, reducer, toReturn, underscoreWrapped;
@@ -220,6 +116,13 @@ BangJsonPath = (function(_super) {
     }
   };
 
+
+  /*
+   * Navigate back to the index-th fragment
+   * @param {int}
+   * @return {BangJsonPath}
+   */
+
   BangJsonPath.prototype.navigateTo = function(index) {
     while (this.models.length > Math.max(index + 1, 0)) {
       this.pop();
@@ -227,6 +130,13 @@ BangJsonPath = (function(_super) {
     this.trigger("change:path");
     return this;
   };
+
+
+  /*
+   * If the last path fragment is in array form, modify the fragment to navigate to the index-th element
+   * @param {int}
+   * @return {BangJsonPath}
+   */
 
   BangJsonPath.prototype.navigateToArrayElement = function(index) {
     var arrayFragment;
@@ -240,6 +150,239 @@ BangJsonPath = (function(_super) {
   return BangJsonPath;
 
 })(Backbone.Collection);
+
+if ((typeof module !== "undefined" && module !== null) && (module.exports != null)) {
+  module.exports = BangJsonPath;
+}
+
+
+/*
+BangJsonPathFragment.coffee
+  The basic component of a JSON query. Each specifies a single operation
+  to be applied onto the current query
+
+Copyright (c) 2015, Groupon, Inc.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+
+Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+Neither the name of GROUPON nor the names of its contributors may be
+used to endorse or promote products derived from this software without
+specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+if (typeof require !== "undefined" && require !== null) {
+  Backbone = require('backbone');
+  _ = require('underscore');
+}
+
+BangJsonPathFragment = (function(_super) {
+  var arrayAndArrayElementRx, arrayElementRx, arrayRx, keyRx;
+
+  __extends(BangJsonPathFragment, _super);
+
+  function BangJsonPathFragment() {
+    return BangJsonPathFragment.__super__.constructor.apply(this, arguments);
+  }
+
+  keyRx = /(^|^countBy|^countByType):(.+)$/;
+
+  arrayRx = /^(.+)\[]$/;
+
+  arrayElementRx = /^(.+)\[(\d+)]$/;
+
+  arrayAndArrayElementRx = /^(.+)\[\d*]$/;
+
+
+  /*
+   * Class function BangJsonPathFragment.prototype.getPathFragmentForKey
+   * @param {parent} parent Object
+   * @param {key} the key of parent object to browse
+   * @return {BangJsonPathFragment} The PathFragment for parent[key]
+   */
+
+  BangJsonPathFragment.prototype.getPathFragmentForKey = function(parent, key) {
+    if (_.isArray(parent[key])) {
+      return new BangJsonPathFragment({
+        fragment: key + "[]"
+      });
+    } else {
+      return new BangJsonPathFragment({
+        fragment: key
+      });
+    }
+  };
+
+
+  /*
+   * Return valid javascript json navigation code fragment to be appended to parent expression
+   * @return {String}
+   * if the pathFragment is in the form of 'array[]', return 'array'
+   * if the pathFragment is in the form of '(method):key', return an underscore expression
+   * else, return as is. eg. 'array[1]' -> 'array[1]'
+   */
+
+  BangJsonPathFragment.prototype.getQueryFragment = function() {
+    var arrayName, fullExpression, keyName, method, type, _ref, _ref1;
+    type = this.getFragmentType();
+    switch (type) {
+      case "ArrayRoot":
+        _ref = this.get("fragment").match(arrayRx), fullExpression = _ref[0], arrayName = _ref[1];
+        return {
+          value: arrayName
+        };
+      case "ArrayKey":
+        _ref1 = this.get("fragment").match(keyRx), fullExpression = _ref1[0], method = _ref1[1], keyName = _ref1[2];
+        switch (method) {
+          case "countBy":
+            return {
+              underscore: "countBy('" + keyName + "')"
+            };
+          case "countByType":
+            return {
+              underscore: "countBy(function(row){ return typeof row['" + keyName + "']; })"
+            };
+          default:
+            return {
+              underscore: "pluck('" + keyName + "')"
+            };
+        }
+        break;
+      default:
+        return {
+          value: this.get("fragment")
+        };
+    }
+  };
+
+
+  /*
+   * Return the type of the fragment
+   * @return {ArrayRoot|ArrayElement|ArrayKey|Value}
+   */
+
+  BangJsonPathFragment.prototype.getFragmentType = function() {
+    if (arrayRx.test(this.get("fragment"))) {
+      return "ArrayRoot";
+    } else if (arrayElementRx.test(this.get("fragment"))) {
+      return "ArrayElement";
+    } else if (keyRx.test(this.get("fragment"))) {
+      return "ArrayKey";
+    } else {
+      return "Value";
+    }
+  };
+
+
+  /*
+   * For a map function, return the name of the function and the key applied on
+   * @return {String, String}
+   */
+
+  BangJsonPathFragment.prototype.getArrayKeyName = function() {
+    var fullExpression, keyName, method, _ref;
+    if (keyRx.test(this.get("fragment"))) {
+      _ref = this.get("fragment").match(keyRx), fullExpression = _ref[0], method = _ref[1], keyName = _ref[2];
+      return {
+        method: method,
+        keyName: keyName
+      };
+    }
+  };
+
+
+  /*
+   * For an array element, return the arrayname and the index of the element
+   * @return {String, Int}
+   */
+
+  BangJsonPathFragment.prototype.getArrayIndex = function() {
+    var arrayIndex, arrayName, fullExpression, _ref;
+    if (arrayElementRx.test(this.get("fragment"))) {
+      _ref = this.get("fragment").match(arrayElementRx), fullExpression = _ref[0], arrayName = _ref[1], arrayIndex = _ref[2];
+      return {
+        arrayName: arrayName,
+        index: parseInt(arrayIndex)
+      };
+    }
+  };
+
+
+  /*
+   * @return {String} override this function to browser use to print user friendly descriptions
+   */
+
+  BangJsonPathFragment.prototype.getDisplayName = function() {
+    return this.get("fragment");
+  };
+
+
+  /*
+   * Determine the javascript json navigation code fragment
+   * @return {String}
+   * if the pathFragment is in the form of 'array[0]', return 'array[]'
+   * if the pathFragment is in the form of 'helper:key', return ':key'
+   * else, return null
+   */
+
+  BangJsonPathFragment.prototype.getBaseFragment = function() {
+    var arrayName, fullExpression, fullName, keyName, method, _ref, _ref1;
+    if (arrayElementRx.test(this.get("fragment"))) {
+      _ref = this.get("fragment").match(arrayElementRx), fullName = _ref[0], arrayName = _ref[1];
+      return arrayName + "[]";
+    } else if (keyRx.test(this.get("fragment"))) {
+      _ref1 = this.get("fragment").match(keyRx), fullExpression = _ref1[0], method = _ref1[1], keyName = _ref1[2];
+      if (method) {
+        return ":" + keyName;
+      }
+    }
+  };
+
+
+  /*
+   * Determine the javascript json navigation code fragment for array element
+   * if the pathFragment is in the form of 'array[]' or 'array[1]', return 'array[i]'
+   * else, return null
+   * @param {Int}
+   * @return {String}
+   */
+
+  BangJsonPathFragment.prototype.getArrayFragment = function(index) {
+    var arrayName, fullName, _ref;
+    if (arrayAndArrayElementRx.test(this.get("fragment"))) {
+      _ref = this.get("fragment").match(arrayAndArrayElementRx), fullName = _ref[0], arrayName = _ref[1];
+      return arrayName + ("[" + index + "]");
+    }
+  };
+
+  return BangJsonPathFragment;
+
+})(Backbone.Model);
+
+if ((typeof module !== "undefined" && module !== null) && (module.exports != null)) {
+  module.exports = BangJsonPathFragment;
+}
 
 
 /*

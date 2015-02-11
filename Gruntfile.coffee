@@ -18,10 +18,10 @@ module.exports = (grunt) ->
             production: true
     mustache:
       app:
-        src: ['src/templates/*.mustache', 'src/extensions/chrome/*.mustache']
+        src: ['src/extensions/chrome/*.mustache']
         dest: 'lib/templates.js'
         options:
-          prefix: 'bangTemplates = '
+          prefix: 'bangExtensionTemplates = '
           postfix: ';'
     coffee:
       app:
@@ -29,12 +29,10 @@ module.exports = (grunt) ->
           bare: true
           join: true
         files:
-          'lib/bang.js': [
-            'src/models/*.coffee'
-            'src/collections/*.coffee'
+          'lib/master.js': [
             'src/views/*.coffee'
+            'src/extensions/chrome/master.coffee'
           ]
-          'lib/master.js': 'src/extensions/chrome/master.coffee'
           'lib/milk/milk.js': 'node_modules/milk/milk.coffee'
       testClient:
         options:
@@ -44,10 +42,6 @@ module.exports = (grunt) ->
           'test/client.test.js': [
             'test/**/*.test.coffee'
           ]
-    stylus:
-      compile:
-        files:
-          'lib/bang.css': 'src/bang.styl'
     lineremover:
       excludeSourceMapping:
         files:
@@ -65,13 +59,11 @@ module.exports = (grunt) ->
             "lib/backbone/backbone.js"
             "lib/URIjs/URI.js"
             "lib/milk/milk.js"
-            "lib/templates.js"
           ]
-      source:
-        options:
-          stripBanners: true
-        files:
-          'lib/bang.js': 'lib/bang.js'
+          'lib/master.js': [
+            'lib/templates.js'
+            'lib/master.js'
+          ]
     uglify:
       app:
         files:
@@ -85,12 +77,12 @@ module.exports = (grunt) ->
             'glyphicons-halflings-regular.eot', 'glyphicons-halflings-regular.svg', 'glyphicons-halflings-regular.ttf', 'glyphicons-halflings-regular.woff', 'glyphicons-halflings-regular.woff2'
           ], dest: 'dist/fonts'}
           {expand: true, cwd: 'src/extensions/chrome/', src: ['manifest.json', 'background.js'], dest: 'dist/'}
-          {expand: true, src: ['lib/lib.min.js', 'lib/bang.js', 'lib/master.js'], dest: 'dist/'}
+          {expand: true, flatten: true, cwd: 'lib', src: ['lib.min.js', 'Bang.js/Bang.js', 'master.js'], dest: 'dist/lib/'}
         ]
     watch:
       app:
-        files: ['src/**/*.coffee', '**/*.styl', 'src/templates/*.mustache', 'src/extensions/chrome/*']
-        tasks: ['mustache', 'coffee:app', 'stylus', 'lineremover', 'concat', 'uglify', 'copy']
+        files: ['src/**/*.coffee', 'src/extensions/chrome/*']
+        tasks: ['mustache', 'coffee:app', 'lineremover', 'concat', 'uglify', 'copy']
       testClient:
         files: ['test/client/**/*.coffee']
         tasks: ['coffee:testClient']
@@ -113,7 +105,6 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks 'grunt-contrib-compress'
   grunt.loadNpmTasks 'grunt-contrib-concat'
   grunt.loadNpmTasks 'grunt-contrib-copy'
-  grunt.loadNpmTasks 'grunt-contrib-stylus'
   grunt.loadNpmTasks 'grunt-contrib-uglify'
   grunt.loadNpmTasks 'grunt-contrib-watch'
   grunt.loadNpmTasks 'grunt-line-remover'
@@ -121,6 +112,6 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks 'grunt-open'
 
   # Default task.
-  grunt.registerTask 'default', ['clean:app', 'bower', 'mustache', 'coffee:app', 'stylus', 'lineremover', 'concat', 'uglify', 'copy', 'compress']
-  grunt.registerTask 'buildTest', ['clean', 'bower', 'mustache', 'coffee', 'stylus', 'lineremover', 'concat', 'uglify', 'copy']
-  grunt.registerTask 'testClient', ['clean', 'bower', 'mustache', 'coffee', 'stylus', 'lineremover', 'concat', 'uglify', 'copy', 'open:test']
+  grunt.registerTask 'default', ['clean:app', 'bower', 'mustache', 'coffee:app', 'lineremover', 'concat', 'uglify', 'copy', 'compress']
+  grunt.registerTask 'buildTest', ['clean', 'bower', 'mustache', 'coffee', 'lineremover', 'concat', 'uglify', 'copy']
+  grunt.registerTask 'testClient', ['clean', 'bower', 'mustache', 'coffee', 'lineremover', 'concat', 'uglify', 'copy', 'open:test']

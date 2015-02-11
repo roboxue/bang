@@ -20,7 +20,7 @@
   "content_scripts": [ {
     "js": [
       "lib/lib.min.js",
-      "lib/bang.js",
+      "lib/Bang.js",
       "lib/master.js"
     ],
     "matches": [ "<all_urls>" ]

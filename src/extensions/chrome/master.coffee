@@ -148,7 +148,7 @@ class BangJsonRouter extends Backbone.Router
     jsonPath.trigger "change:path"
 
   renderNavbar: (navbar)->
-    navbar.html window.Milk.render bangTemplates.BangNavbar, {}
+    navbar.html window.Milk.render bangExtensionTemplates.BangNavbar, {}
 
   importCss: (root)->
     root.append("link").attr({rel: "stylesheet", href: chrome.extension.getURL('css/bootstrap.css'), type: "text/css"})
