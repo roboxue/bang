@@ -13,6 +13,9 @@ chrome.runtime.onMessage.addListener(
             case "load":
                 _gaq.push(['_trackPageview', '/v' + chrome.runtime.getManifest().version]);
                 break;
+            case "browse":
+                _gaq.push(['_trackEvent', 'Browse', 'Execute']);
+                break;
             case "query":
                 _gaq.push(['_trackEvent', 'CustomQuery', 'Execute']);
                 break;

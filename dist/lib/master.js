@@ -83,9 +83,6 @@ BangQueryPanelView = (function(_super) {
 
   BangQueryPanelView.prototype.doRunQuery = function() {
     var query;
-    chrome.runtime.sendMessage({
-      stage: "query"
-    });
     query = $("#" + this.textAreaId).val();
     return this.trigger("change:query", query);
   };
@@ -234,6 +231,9 @@ BangJsonRouter = (function(_super) {
     this.importCss(root);
     this.listenTo(jsonPath, "change:path", function() {
       var error, query, result, _ref;
+      chrome.runtime.sendMessage({
+        stage: "browse"
+      });
       query = jsonPath.getQuery();
       _ref = runQuery(query), error = _ref.error, result = _ref.result;
       if (error) {
@@ -245,6 +245,9 @@ BangJsonRouter = (function(_super) {
     });
     this.listenTo(bangQueryPanelView, "change:query", function(query) {
       var error, result, _ref;
+      chrome.runtime.sendMessage({
+        stage: "query"
+      });
       bangJsonView.clear();
       _ref = runQuery(query), error = _ref.error, result = _ref.result;
       if (error) {

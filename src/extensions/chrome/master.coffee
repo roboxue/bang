@@ -112,6 +112,7 @@ class BangJsonRouter extends Backbone.Router
     @importCss root
     # Bind listeners and click events
     @listenTo jsonPath, "change:path", ->
+      chrome.runtime.sendMessage {stage: "browse"}
       query = jsonPath.getQuery()
       {error, result} = runQuery query
       if error
@@ -120,6 +121,7 @@ class BangJsonRouter extends Backbone.Router
         bangQueryPanelView.updateQuery jsonPath.getQuery(null, true)
         jsonPath.trigger "change:result", result
     @listenTo bangQueryPanelView, "change:query", (query)->
+      chrome.runtime.sendMessage {stage: "query"}
       bangJsonView.clear()
       { error, result } = runQuery query
       if error

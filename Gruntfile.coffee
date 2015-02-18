@@ -54,7 +54,6 @@ module.exports = (grunt) ->
           'lib/lib.js': [
             "lib/jquery/jquery.js"
             "lib/d3/d3.js"
-            "lib/bootstrap/bootstrap.js"
             "lib/underscore/underscore.js"
             "lib/backbone/backbone.js"
             "lib/URIjs/URI.js"

@@ -53,7 +53,6 @@ class BangQueryPanelView extends Backbone.View
     @$el.html window.Milk.render bangExtensionTemplates.BangQueryForm, page
 
   doRunQuery: ->
-    chrome.runtime.sendMessage {stage: "query"}
     query = $("#" + @textAreaId).val()
     @trigger "change:query", query
 
