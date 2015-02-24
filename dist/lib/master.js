@@ -256,13 +256,17 @@ BangJsonRouter = (function(_super) {
         bangJsonView.model.baseExpression = query;
         queryResult = result;
         if (result instanceof Array) {
-          jsonPath.set({
-            fragment: "queryResult[]"
-          });
+          jsonPath.set([
+            new BangJsonPathFragment({
+              fragment: "queryResult[]"
+            })
+          ]);
         } else {
-          jsonPath.set({
-            fragment: "queryResult"
-          });
+          jsonPath.set([
+            new BangJsonPathFragment({
+              fragment: "queryResult"
+            })
+          ]);
         }
         return jsonPath.trigger("change:result", result);
       }

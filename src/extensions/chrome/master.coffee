@@ -130,9 +130,9 @@ class BangJsonRouter extends Backbone.Router
         bangJsonView.model.baseExpression = query
         queryResult = result
         if result instanceof Array
-          jsonPath.set {fragment: "queryResult[]"}
+          jsonPath.set [new BangJsonPathFragment {fragment: "queryResult[]"}]
         else
-          jsonPath.set {fragment: "queryResult"}
+          jsonPath.set [new BangJsonPathFragment {fragment: "queryResult"}]
         jsonPath.trigger "change:result", result
     @listenTo bangQueryPanelView, "reset:query", ->
       jsonPath.baseExpression = "bang"
