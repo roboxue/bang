@@ -653,7 +653,7 @@ BangJsonView = (function(_super) {
       };
     }).value();
     if (keyStats.length > 0) {
-      return this.updateArraySchemaList(keyStats, result);
+      return this.updateArraySchemaTable(keyStats, result);
     } else {
       return this.updateCodeBlock(prettyPrint(result, true));
     }

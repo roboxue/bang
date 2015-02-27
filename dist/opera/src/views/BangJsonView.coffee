@@ -214,7 +214,7 @@ class BangJsonView extends Backbone.View
       {key, types}
     ).value()
     if keyStats.length > 0
-      @updateArraySchemaList keyStats, result
+      @updateArraySchemaTable keyStats, result
     else
       @updateCodeBlock prettyPrint(result, true)
 
