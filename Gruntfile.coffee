@@ -103,12 +103,12 @@ module.exports = (grunt) ->
         files: ['test/client/**/*.coffee']
         tasks: ['coffee:testClient']
     compress:
-      main:
+      chrome:
         options:
           archive: "release/bang_#{chromeExtensionVersionNumber}.zip"
           mode: "zip"
         files: [
-          {expand: true, cwd: 'dist/', src: ['**'], dest: "bang/"}
+          {expand: true, cwd: 'dist/chrome/', src: ['**'], dest: "bang/"}
         ]
     open:
       test:
