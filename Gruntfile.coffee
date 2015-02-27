@@ -64,19 +64,36 @@ module.exports = (grunt) ->
             'lib/master.js'
           ]
     uglify:
+      options:
+        preserveComments: "some"
       app:
         files:
           'lib/lib.min.js': 'lib/lib.js'
     copy:
-      dist:
+      chrome:
         files: [
-          {expand: true, src: ['*.png'], dest: 'dist/'}
-          {expand: true, flatten: true, cwd: 'lib', src: ['**/*.css'], dest: 'dist/css', filter: 'isFile'}
+          {expand: true, src: ['*.png'], dest: 'dist/chrome'}
+          {expand: true, flatten: true, cwd: 'lib', src: ['**/*.css'], dest: 'dist/chrome/css', filter: 'isFile'}
           {expand: true, cwd: 'lib/bootstrap/', src: [
             'glyphicons-halflings-regular.eot', 'glyphicons-halflings-regular.svg', 'glyphicons-halflings-regular.ttf', 'glyphicons-halflings-regular.woff', 'glyphicons-halflings-regular.woff2'
-          ], dest: 'dist/fonts'}
-          {expand: true, cwd: 'src/extensions/chrome/', src: ['manifest.json', 'background.js'], dest: 'dist/'}
-          {expand: true, flatten: true, cwd: 'lib', src: ['lib.min.js', 'Bang.js/Bang.js', 'master.js'], dest: 'dist/lib/'}
+          ], dest: 'dist/chrome/fonts'}
+          {expand: true, cwd: 'src/extensions/chrome/', src: ['manifest.json', 'background.js'], dest: 'dist/chrome/'}
+          {expand: true, flatten: true, cwd: 'lib', src: ['lib.min.js', 'Bang.js/Bang.js', 'master.js'], dest: 'dist/chrome/lib/'}
+        ]
+      opera:
+        files: [
+          {expand: true, src: ['*.png'], dest: 'dist/opera'}
+          {expand: true, flatten: true, cwd: 'lib', src: ['**/*.css'], dest: 'dist/opera/css', filter: 'isFile'}
+          {expand: true, cwd: 'lib/bootstrap/', src: [
+            'glyphicons-halflings-regular.eot', 'glyphicons-halflings-regular.svg', 'glyphicons-halflings-regular.ttf', 'glyphicons-halflings-regular.woff', 'glyphicons-halflings-regular.woff2'
+          ], dest: 'dist/opera/fonts'}
+          {expand: true, cwd: 'src/extensions/chrome/', src: ['manifest.json', 'background.js'], dest: 'dist/opera/'}
+          {expand: true, flatten: true, cwd: 'lib', src: ['lib.min.js', 'Bang.js/Bang.js', 'master.js'], dest: 'dist/opera/lib/'}
+
+          {expand: true, flatten: true, src: ["lib/jquery/jquery.js","lib/d3/d3.js","lib/underscore/underscore.js","lib/backbone/backbone.js","lib/URIjs/URI.js","lib/milk/milk.js"], dest: 'dist/opera/src/lib'}
+          {expand: true, cwd: 'src', src: ['views/*.coffee'], dest: 'dist/opera/src/'}
+          {expand: true, flatten: true, cwd: 'src', src: ['extensions/chrome/*.coffee', 'extensions/chrome/*.js'], dest: 'dist/opera/src/'}
+          {expand: true, cwd: 'bower_components/Bang.js/src', src: ['collections/*.coffee', 'models/*.coffee', 'views/*.coffee'], dest: 'dist/opera/src/'}
         ]
     watch:
       app:
