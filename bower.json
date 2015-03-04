@@ -8,8 +8,7 @@
     "bootstrap": "~3.3.1",
     "underscore": "~1.7.0",
     "backbone": "~1.1.2",
-    "URIjs": "~1.14.1",
-    "Bang.js": "git@github.groupondev.com:rxue/Bang.js.git#1.0.1"
+    "URIjs": "~1.14.1"
   },
   "devDependencies": {}
 }

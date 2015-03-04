@@ -3,7 +3,7 @@
 
   "name": "Bang JSON workspace",
   "short_name": "bang",
-  "version": "0.1.7.5",
+  "version": "0.1.7.6",
   "icons": {
     "128": "bang.png"
   },
@@ -19,13 +19,14 @@
   "content_security_policy": "script-src 'self' https://ssl.google-analytics.com; object-src 'self'",
   "content_scripts": [ {
     "js": [
-      "lib/lib.min.js",
-      "lib/Bang.js",
-      "lib/master.js"
+      "lib/require.js",
+      "master.js"
     ],
     "matches": [ "<all_urls>" ]
   } ],
   "web_accessible_resources": [
+    "lib/*",
+    "app/*",
     "css/bootstrap.css",
     "css/bang.css",
     "fonts/*"

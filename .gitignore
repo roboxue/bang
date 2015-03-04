@@ -1,4 +1,4 @@
-lib/
+tmp/
 bower_components/
 release/
 test/*.js

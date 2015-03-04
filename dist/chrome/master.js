@@ -1,4 +1,5 @@
-###
+
+/*
 Bang.coffee, frontend JSON workspace, a chrome extension
 
 Copyright (c) 2015, Groupon, Inc.
@@ -30,38 +31,60 @@ PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
 LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###
+ */
 
-originBody = null
+(function() {
+  var load, originBody;
 
-require.load = (context, moduleName, url)->
-  xhr = new XMLHttpRequest()
-  xhr.open("GET", url, true)
-  xhr.onreadystatechange = (e)->
-    if xhr.readyState is 4 && xhr.status is 200
-      eval(xhr.responseText)
-      context.completeLoad(moduleName)
-  xhr.send(null)
+  originBody = null;
 
-requirejs.config
-  baseUrl: chrome.extension.getURL("lib")
-  paths:
-    app: chrome.extension.getURL("app")
+  require.load = function(context, moduleName, url) {
+    var xhr;
+    xhr = new XMLHttpRequest();
+    xhr.open("GET", url, true);
+    xhr.onreadystatechange = function(e) {
+      if (xhr.readyState === 4 && xhr.status === 200) {
+        eval(xhr.responseText);
+        return context.completeLoad(moduleName);
+      }
+    };
+    return xhr.send(null);
+  };
 
-load = ->
-  require ["jquery", "underscore", "backbone"], ($, _, Backbone)->
-    bang = null
-    try
-      bang = JSON.parse originBody
-    catch ex
-      console.log "Document not valid json, bang will not work: #{ex}"
-      console.log "Bang can't work on HTML and XML pages"
-      return
-    require ["app/BangJsonRouter"], (BangJsonRouter)->
-      router = new BangJsonRouter({bang})
-      Backbone.history.start()
+  requirejs.config({
+    baseUrl: chrome.extension.getURL("lib"),
+    paths: {
+      app: chrome.extension.getURL("app")
+    }
+  });
 
-if document.body && (document.body.childNodes[0] && document.body.childNodes[0].tagName == "PRE" || document.body.children.length == 0)
-  originBody = if document.body.children.length then document.body.childNodes[0].innerText else document.body
-  if originBody
-    setTimeout(load, 200)
+  load = function() {
+    return require(["jquery", "underscore", "backbone"], function($, _, Backbone) {
+      var bang, ex;
+      bang = null;
+      try {
+        bang = JSON.parse(originBody);
+      } catch (_error) {
+        ex = _error;
+        console.log("Document not valid json, bang will not work: " + ex);
+        console.log("Bang can't work on HTML and XML pages");
+        return;
+      }
+      return require(["app/BangJsonRouter"], function(BangJsonRouter) {
+        var router;
+        router = new BangJsonRouter({
+          bang: bang
+        });
+        return Backbone.history.start();
+      });
+    });
+  };
+
+  if (document.body && (document.body.childNodes[0] && document.body.childNodes[0].tagName === "PRE" || document.body.children.length === 0)) {
+    originBody = document.body.children.length ? document.body.childNodes[0].innerText : document.body;
+    if (originBody) {
+      setTimeout(load, 200);
+    }
+  }
+
+}).call(this);
