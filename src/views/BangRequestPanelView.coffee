@@ -1,9 +1,10 @@
 define ["underscore"
         "backbone"
         "URI"
+        "d3"
         "mustache"
         "app/templates"
-], (_, Backbone, URI, Mustache, templates)->
+], (_, Backbone, URI, d3, Mustache, templates)->
   class BangRequestPanelView extends Backbone.View
     model: URI
 

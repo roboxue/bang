@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Bang Client Test</title>
+    <link rel="stylesheet" href="../node_modules/mocha/mocha.css" />
+</head>
+<body>
+    <div id="mocha"></div>
+    <script src="../node_modules/chai/chai.js"></script>
+    <script src="../node_modules/mocha/mocha.js"></script>
+    <script src="../node_modules/requirejs/require.js">
+    </script>
+    <script>
+        requirejs.config({
+            baseUrl: "../dist/chrome/lib",
+            paths: {
+                app: "../app",
+                test: "../../../test/tmp",
+                chai: "../../../node_modules/chai/chai",
+                mocha: "../../../node_modules/mocha/mocha"
+            }
+        });
+
+        var expect = chai.expect;
+        var assert = chai.assert;
+        mocha.setup('bdd');
+        require([
+            "test/BangJsonPath",
+            "test/BangRequestPanelView",
+            "test/BangJsonPathFragment",
+            "test/BangQueryPanelView",
+            "test/BangJsonView"
+        ], function(require){
+            mocha.run();
+        });
+    </script>
+</body>
+</html>

@@ -2,7 +2,7 @@
   var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
-  define(["underscore", "backbone", "URI", "mustache", "app/templates"], function(_, Backbone, URI, Mustache, templates) {
+  define(["underscore", "backbone", "URI", "d3", "mustache", "app/templates"], function(_, Backbone, URI, d3, Mustache, templates) {
     var BangRequestPanelView;
     return BangRequestPanelView = (function(_super) {
       __extends(BangRequestPanelView, _super);

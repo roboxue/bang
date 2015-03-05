@@ -36,11 +36,12 @@ module.exports = (grunt) ->
       testClient:
         options:
           bare: true
-          join: true
-        files:
-          'test/client.test.js': [
-            'test/**/*.test.coffee'
-          ]
+        expand: true
+        flatten: true
+        cwd: "test/"
+        src: ["**/*.test.coffee"]
+        dest: "test/tmp"
+        ext: ".js"
     lineremover:
       excludeSourceMapping:
         files:
