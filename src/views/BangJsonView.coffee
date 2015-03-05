@@ -115,8 +115,11 @@ define ["d3"
 
     updateArrayEnumerator: ({arrayName, index})->
       pager = @indexSelectorDiv.append("nav").append("ul").attr("class", "pager")
-      query = @model.getQuery @model.slice(0, @model.length - 1).concat(new BangJsonPathFragment({fragment: arrayName + "[]"}))
-      maxLength = eval(query).length
+      {error, result} = @model.getResult(@model.getQuery(@model.slice(0, @model.length - 1).concat(new BangJsonPathFragment({fragment: arrayName + "[]"}))))
+      if result
+        maxLength = result.length
+      else
+        maxLength = 0
       # Previous Button
       if index > 0
         pager.append("li").attr("class", "previous").append("a").attr("href", "#").html("&larr;Previous").on "click", =>

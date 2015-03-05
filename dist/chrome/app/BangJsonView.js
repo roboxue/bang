@@ -142,13 +142,17 @@
       };
 
       BangJsonView.prototype.updateArrayEnumerator = function(_arg) {
-        var arrayName, index, maxLength, pager, query;
+        var arrayName, error, index, maxLength, pager, result, _ref;
         arrayName = _arg.arrayName, index = _arg.index;
         pager = this.indexSelectorDiv.append("nav").append("ul").attr("class", "pager");
-        query = this.model.getQuery(this.model.slice(0, this.model.length - 1).concat(new BangJsonPathFragment({
+        _ref = this.model.getResult(this.model.getQuery(this.model.slice(0, this.model.length - 1).concat(new BangJsonPathFragment({
           fragment: arrayName + "[]"
-        })));
-        maxLength = eval(query).length;
+        })))), error = _ref.error, result = _ref.result;
+        if (result) {
+          maxLength = result.length;
+        } else {
+          maxLength = 0;
+        }
         if (index > 0) {
           pager.append("li").attr("class", "previous").append("a").attr("href", "#").html("&larr;Previous").on("click", (function(_this) {
             return function() {

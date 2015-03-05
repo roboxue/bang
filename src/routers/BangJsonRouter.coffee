@@ -12,9 +12,6 @@ define [
   "app/BangQueryPanelView"
   "app/BangRequestPanelView"
 ], ($, _, Backbone, URI, d3, Mustache, templates, BangJsonPathFragment, BangJsonPath, BangJsonView, BangQueryPanelView, BangRequestPanelView)->
-  # Global variables that will be used in query
-  bang = null
-  queryResult = null
 
   # Models
   jsonPath = null
@@ -24,19 +21,9 @@ define [
   bangQueryPanelView = null
   bangRequestPanelView = null
 
-  runQuery = (query)->
-    try
-      result = eval query
-      if result is undefined
-        return {error: "(undefined)"}
-      else
-        return {result}
-    catch ex
-      return {error: ex}
-
   class BangJsonRouter extends Backbone.Router
     initialize: (options)->
-      bang = options.bang
+      @bang = options.bang
       console.info "Bang (v#{chrome.runtime.getManifest().version}) will make your life with JSON easier!"
       chrome.runtime.sendMessage {stage: "load"}
       toggler = d3.select("body").append("div").attr("id", "showBang").style({
@@ -81,7 +68,8 @@ define [
       @renderNavbar root.append("div").attr("class", "navbar navbar-default navbar-fixed-top")
       queryRow = root.append("div").attr("class", "row")
       responseRow = root.append("div").attr("class", "row")
-      jsonPath = new BangJsonPath [new BangJsonPathFragment({fragment: if bang instanceof Array then "bang[]" else "bang"})], {baseExpression: "bang"}
+      jsonPath = new BangJsonPath [new BangJsonPathFragment({fragment: if @bang instanceof Array then "bang[]" else "bang"})], {baseExpression: "bang"}
+      jsonPath.bang = @bang
       bangJsonView = new BangJsonView {
         model: jsonPath
         el: queryRow.append("div").attr("class", "col-lg-12 col-md-12 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-default panel-primary").attr("id", "navigatorPanel").node()
@@ -100,8 +88,7 @@ define [
       # Bind listeners and click events
       @listenTo jsonPath, "change:path", ->
         chrome.runtime.sendMessage {stage: "browse"}
-        query = jsonPath.getQuery()
-        {error, result} = runQuery query
+        {error, result} = jsonPath.getResult()
         if error
           bangJsonView.showErrorMessage error
         else
@@ -110,12 +97,12 @@ define [
       @listenTo bangQueryPanelView, "change:query", (query)->
         chrome.runtime.sendMessage {stage: "query"}
         bangJsonView.clear()
-        { error, result } = runQuery query
+        {error, result} = jsonPath.getResult(query)
         if error
           bangJsonView.showErrorMessage error
         else
           bangJsonView.model.baseExpression = query
-          queryResult = result
+          jsonPath.queryResult = result
           if result instanceof Array
             jsonPath.set [new BangJsonPathFragment {fragment: "queryResult[]"}]
           else
@@ -123,7 +110,7 @@ define [
           jsonPath.trigger "change:result", result
       @listenTo bangQueryPanelView, "reset:query", ->
         jsonPath.baseExpression = "bang"
-        jsonPath.set {fragment: if bang instanceof Array then "bang[]" else "bang"}
+        jsonPath.set {fragment: if @bang instanceof Array then "bang[]" else "bang"}
         jsonPath.trigger "change:path"
       $("#dismissBang").click (ev)->
         ev.preventDefault()

@@ -3,7 +3,28 @@
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   define(["underscore", "backbone", "app/BangJsonPathFragment"], function(_, Backbone, BangJsonPathFragment) {
-    var BangJsonPath;
+    var BangJsonPath, runQuery;
+    runQuery = function(query, _arg) {
+      var bang, ex, queryResult, result;
+      bang = _arg.bang, queryResult = _arg.queryResult;
+      try {
+        result = eval(query);
+        if (result === void 0) {
+          return {
+            error: "(undefined)"
+          };
+        } else {
+          return {
+            result: result
+          };
+        }
+      } catch (_error) {
+        ex = _error;
+        return {
+          error: ex
+        };
+      }
+    };
     return BangJsonPath = (function(_super) {
       __extends(BangJsonPath, _super);
 
@@ -69,6 +90,20 @@
           return toReturn + ".value()";
         } else {
           return toReturn;
+        }
+      };
+
+      BangJsonPath.prototype.getResult = function(query) {
+        if (query) {
+          return runQuery(query, {
+            bang: this.bang,
+            queryResult: this.queryResult
+          });
+        } else {
+          return runQuery(this.getQuery(), {
+            bang: this.bang,
+            queryResult: this.queryResult
+          });
         }
       };
 

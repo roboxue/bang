@@ -3,33 +3,11 @@
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   define(["jquery", "underscore", "backbone", "URI", "d3", "mustache", "app/templates", "app/BangJsonPathFragment", "app/BangJsonPath", "app/BangJsonView", "app/BangQueryPanelView", "app/BangRequestPanelView"], function($, _, Backbone, URI, d3, Mustache, templates, BangJsonPathFragment, BangJsonPath, BangJsonView, BangQueryPanelView, BangRequestPanelView) {
-    var BangJsonRouter, bang, bangJsonView, bangQueryPanelView, bangRequestPanelView, jsonPath, queryResult, runQuery;
-    bang = null;
-    queryResult = null;
+    var BangJsonRouter, bangJsonView, bangQueryPanelView, bangRequestPanelView, jsonPath;
     jsonPath = null;
     bangJsonView = null;
     bangQueryPanelView = null;
     bangRequestPanelView = null;
-    runQuery = function(query) {
-      var ex, result;
-      try {
-        result = eval(query);
-        if (result === void 0) {
-          return {
-            error: "(undefined)"
-          };
-        } else {
-          return {
-            result: result
-          };
-        }
-      } catch (_error) {
-        ex = _error;
-        return {
-          error: ex
-        };
-      }
-    };
     return BangJsonRouter = (function(_super) {
       __extends(BangJsonRouter, _super);
 
@@ -39,7 +17,7 @@
 
       BangJsonRouter.prototype.initialize = function(options) {
         var fade, queryRow, responseRow, root, toggler, wrapper;
-        bang = options.bang;
+        this.bang = options.bang;
         console.info("Bang (v" + (chrome.runtime.getManifest().version) + ") will make your life with JSON easier!");
         chrome.runtime.sendMessage({
           stage: "load"
@@ -89,11 +67,12 @@
         responseRow = root.append("div").attr("class", "row");
         jsonPath = new BangJsonPath([
           new BangJsonPathFragment({
-            fragment: bang instanceof Array ? "bang[]" : "bang"
+            fragment: this.bang instanceof Array ? "bang[]" : "bang"
           })
         ], {
           baseExpression: "bang"
         });
+        jsonPath.bang = this.bang;
         bangJsonView = new BangJsonView({
           model: jsonPath,
           el: queryRow.append("div").attr("class", "col-lg-12 col-md-12 col-sm-12 col-xs-12").append("div").attr("class", "panel panel-default panel-primary").attr("id", "navigatorPanel").node()
@@ -110,12 +89,11 @@
         bangRequestPanelView.render();
         this.importCss(root);
         this.listenTo(jsonPath, "change:path", function() {
-          var error, query, result, _ref;
+          var error, result, _ref;
           chrome.runtime.sendMessage({
             stage: "browse"
           });
-          query = jsonPath.getQuery();
-          _ref = runQuery(query), error = _ref.error, result = _ref.result;
+          _ref = jsonPath.getResult(), error = _ref.error, result = _ref.result;
           if (error) {
             return bangJsonView.showErrorMessage(error);
           } else {
@@ -129,12 +107,12 @@
             stage: "query"
           });
           bangJsonView.clear();
-          _ref = runQuery(query), error = _ref.error, result = _ref.result;
+          _ref = jsonPath.getResult(query), error = _ref.error, result = _ref.result;
           if (error) {
             return bangJsonView.showErrorMessage(error);
           } else {
             bangJsonView.model.baseExpression = query;
-            queryResult = result;
+            jsonPath.queryResult = result;
             if (result instanceof Array) {
               jsonPath.set([
                 new BangJsonPathFragment({
@@ -154,7 +132,7 @@
         this.listenTo(bangQueryPanelView, "reset:query", function() {
           jsonPath.baseExpression = "bang";
           jsonPath.set({
-            fragment: bang instanceof Array ? "bang[]" : "bang"
+            fragment: this.bang instanceof Array ? "bang[]" : "bang"
           });
           return jsonPath.trigger("change:path");
         });

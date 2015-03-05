@@ -1,4 +1,14 @@
 define ["underscore", "backbone", "app/BangJsonPathFragment"], (_, Backbone, BangJsonPathFragment)->
+  runQuery = (query, {bang, queryResult})->
+    try
+      result = eval query
+      if result is undefined
+        return {error: "(undefined)"}
+      else
+        return {result}
+    catch ex
+      return {error: ex}
+
   # A collection of BangJsonPath, which composes a javascript expression that queries the root object
   class BangJsonPath extends Backbone.Collection
     model: BangJsonPathFragment
@@ -47,6 +57,13 @@ define ["underscore", "backbone", "app/BangJsonPathFragment"], (_, Backbone, Ban
         toReturn + ".value()"
       else
         toReturn
+
+    # Run the query in this context. If query is not provided, use @getQuery()
+    getResult: (query)->
+      if query
+        runQuery query, {bang: @bang, queryResult: @queryResult}
+      else
+        runQuery @getQuery(), {bang: @bang, queryResult: @queryResult}
 
     ###
     # Navigate back to the index-th fragment
