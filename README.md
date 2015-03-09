@@ -39,7 +39,7 @@ License
 
 Hightlights:
 
-##### Custom Javascript expression cab be applied onto JSON response directly
+##### Custom Javascript expression can be applied onto JSON response directly
 Supporting [Underscore](http://underscorejs.org/), [Backbone](http://backbonejs.org), [d3](http://d3js.org), and [jquery](http://jquery.com)
 ![screen shot 2015-01-21 at 00 29 58](https://cloud.githubusercontent.com/assets/4080835/5832066/9d032356-a104-11e4-9243-2a35e7cf3fae.png)
 
@@ -49,7 +49,7 @@ Supporting [Underscore](http://underscorejs.org/), [Backbone](http://backbonejs.
 ##### Browse easily within an array
 ![screen shot 1](https://github.groupondev.com/github-enterprise-assets/0000/1817/0000/9723/88c06770-c687-11e4-8981-d54f0bb0212b.png)
 
-##### Url editing utils for quick turnaround
+##### Url editing utility for quick poking around an unfamiliar API
 ![screen shot 2015-01-26 at 13 02 30](https://cloud.githubusercontent.com/assets/4080835/5906227/97593b06-a55b-11e4-8a9b-645ee01a7e1a.png)
 
 [Available in Chrome Store](https://chrome.google.com/webstore/detail/bang-json-workspace/dfmpfciemnocjnpfddbefbhhamhjcmgl)
