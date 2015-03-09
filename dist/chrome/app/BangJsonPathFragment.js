@@ -1,13 +1,48 @@
+
+/*
+Bang, frontend JSON workspace, a chrome extension
+
+Copyright (c) 2015, Groupon, Inc.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+
+Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+Neither the name of GROUPON nor the names of its contributors may be
+used to endorse or promote products derived from this software without
+specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 (function() {
-  var __hasProp = {}.hasOwnProperty,
-    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
 
   define(["jquery", "underscore", "backbone"], function($, _, Backbone) {
     var BangJsonPathFragment;
-    return BangJsonPathFragment = (function(_super) {
+    return BangJsonPathFragment = (function(superClass) {
       var arrayAndArrayElementRx, arrayElementRx, arrayRx, keyRx;
 
-      __extends(BangJsonPathFragment, _super);
+      extend(BangJsonPathFragment, superClass);
 
       function BangJsonPathFragment() {
         return BangJsonPathFragment.__super__.constructor.apply(this, arguments);
@@ -51,16 +86,16 @@
        */
 
       BangJsonPathFragment.prototype.getQueryFragment = function() {
-        var arrayName, fullExpression, keyName, method, type, _ref, _ref1;
+        var arrayName, fullExpression, keyName, method, ref, ref1, type;
         type = this.getFragmentType();
         switch (type) {
           case "ArrayRoot":
-            _ref = this.get("fragment").match(arrayRx), fullExpression = _ref[0], arrayName = _ref[1];
+            ref = this.get("fragment").match(arrayRx), fullExpression = ref[0], arrayName = ref[1];
             return {
               value: arrayName
             };
           case "ArrayKey":
-            _ref1 = this.get("fragment").match(keyRx), fullExpression = _ref1[0], method = _ref1[1], keyName = _ref1[2];
+            ref1 = this.get("fragment").match(keyRx), fullExpression = ref1[0], method = ref1[1], keyName = ref1[2];
             switch (method) {
               case "countBy":
                 return {
@@ -108,9 +143,9 @@
        */
 
       BangJsonPathFragment.prototype.getArrayKeyName = function() {
-        var fullExpression, keyName, method, _ref;
+        var fullExpression, keyName, method, ref;
         if (keyRx.test(this.get("fragment"))) {
-          _ref = this.get("fragment").match(keyRx), fullExpression = _ref[0], method = _ref[1], keyName = _ref[2];
+          ref = this.get("fragment").match(keyRx), fullExpression = ref[0], method = ref[1], keyName = ref[2];
           return {
             method: method,
             keyName: keyName
@@ -125,9 +160,9 @@
        */
 
       BangJsonPathFragment.prototype.getArrayIndex = function() {
-        var arrayIndex, arrayName, fullExpression, _ref;
+        var arrayIndex, arrayName, fullExpression, ref;
         if (arrayElementRx.test(this.get("fragment"))) {
-          _ref = this.get("fragment").match(arrayElementRx), fullExpression = _ref[0], arrayName = _ref[1], arrayIndex = _ref[2];
+          ref = this.get("fragment").match(arrayElementRx), fullExpression = ref[0], arrayName = ref[1], arrayIndex = ref[2];
           return {
             arrayName: arrayName,
             index: parseInt(arrayIndex)
@@ -154,12 +189,12 @@
        */
 
       BangJsonPathFragment.prototype.getBaseFragment = function() {
-        var arrayName, fullExpression, fullName, keyName, method, _ref, _ref1;
+        var arrayName, fullExpression, fullName, keyName, method, ref, ref1;
         if (arrayElementRx.test(this.get("fragment"))) {
-          _ref = this.get("fragment").match(arrayElementRx), fullName = _ref[0], arrayName = _ref[1];
+          ref = this.get("fragment").match(arrayElementRx), fullName = ref[0], arrayName = ref[1];
           return arrayName + "[]";
         } else if (keyRx.test(this.get("fragment"))) {
-          _ref1 = this.get("fragment").match(keyRx), fullExpression = _ref1[0], method = _ref1[1], keyName = _ref1[2];
+          ref1 = this.get("fragment").match(keyRx), fullExpression = ref1[0], method = ref1[1], keyName = ref1[2];
           if (method) {
             return ":" + keyName;
           }
@@ -176,9 +211,9 @@
        */
 
       BangJsonPathFragment.prototype.getArrayFragment = function(index) {
-        var arrayName, fullName, _ref;
+        var arrayName, fullName, ref;
         if (arrayAndArrayElementRx.test(this.get("fragment"))) {
-          _ref = this.get("fragment").match(arrayAndArrayElementRx), fullName = _ref[0], arrayName = _ref[1];
+          ref = this.get("fragment").match(arrayAndArrayElementRx), fullName = ref[0], arrayName = ref[1];
           return arrayName + ("[" + index + "]");
         }
       };

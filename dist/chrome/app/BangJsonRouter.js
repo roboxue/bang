@@ -1,6 +1,41 @@
+
+/*
+Bang, frontend JSON workspace, a chrome extension
+
+Copyright (c) 2015, Groupon, Inc.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+
+Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+Neither the name of GROUPON nor the names of its contributors may be
+used to endorse or promote products derived from this software without
+specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 (function() {
-  var __hasProp = {}.hasOwnProperty,
-    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
 
   define(["jquery", "underscore", "backbone", "URI", "d3", "mustache", "app/templates", "app/BangJsonPathFragment", "app/BangJsonPath", "app/BangJsonView", "app/BangQueryPanelView", "app/BangRequestPanelView"], function($, _, Backbone, URI, d3, Mustache, templates, BangJsonPathFragment, BangJsonPath, BangJsonView, BangQueryPanelView, BangRequestPanelView) {
     var BangJsonRouter, bangJsonView, bangQueryPanelView, bangRequestPanelView, jsonPath;
@@ -8,8 +43,8 @@
     bangJsonView = null;
     bangQueryPanelView = null;
     bangRequestPanelView = null;
-    return BangJsonRouter = (function(_super) {
-      __extends(BangJsonRouter, _super);
+    return BangJsonRouter = (function(superClass) {
+      extend(BangJsonRouter, superClass);
 
       function BangJsonRouter() {
         return BangJsonRouter.__super__.constructor.apply(this, arguments);
@@ -89,11 +124,11 @@
         bangRequestPanelView.render();
         this.importCss(root);
         this.listenTo(jsonPath, "change:path", function() {
-          var error, result, _ref;
+          var error, ref, result;
           chrome.runtime.sendMessage({
             stage: "browse"
           });
-          _ref = jsonPath.getResult(), error = _ref.error, result = _ref.result;
+          ref = jsonPath.getResult(), error = ref.error, result = ref.result;
           if (error) {
             return bangJsonView.showErrorMessage(error);
           } else {
@@ -102,12 +137,12 @@
           }
         });
         this.listenTo(bangQueryPanelView, "change:query", function(query) {
-          var error, result, _ref;
+          var error, ref, result;
           chrome.runtime.sendMessage({
             stage: "query"
           });
           bangJsonView.clear();
-          _ref = jsonPath.getResult(query), error = _ref.error, result = _ref.result;
+          ref = jsonPath.getResult(query), error = ref.error, result = ref.result;
           if (error) {
             return bangJsonView.showErrorMessage(error);
           } else {
