@@ -1,12 +1,47 @@
+
+/*
+Bang, frontend JSON workspace, a chrome extension
+
+Copyright (c) 2015, Groupon, Inc.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+
+Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+Neither the name of GROUPON nor the names of its contributors may be
+used to endorse or promote products derived from this software without
+specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 (function() {
   var prettyPrint, replacer,
-    __hasProp = {}.hasOwnProperty,
-    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+    extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
 
   define(["d3", "underscore", "backbone", "app/BangJsonPathFragment", "app/BangJsonPath"], function(d3, _, Backbone, BangJsonPathFragment, BangJsonPath) {
     var BangJsonView;
-    return BangJsonView = (function(_super) {
-      __extends(BangJsonView, _super);
+    return BangJsonView = (function(superClass) {
+      extend(BangJsonView, superClass);
 
       function BangJsonView() {
         return BangJsonView.__super__.constructor.apply(this, arguments);
@@ -111,14 +146,14 @@
       };
 
       BangJsonView.prototype.updateObjectResult = function(result, type) {
-        var keyName, method, _ref;
+        var keyName, method, ref;
         if (_.isEmpty(result)) {
           this.pageHeader.html("<h3>Empty Object</h3>");
           return this.updateCodeBlock("<span>Empty Object</span>");
         } else {
           this.updateKeyValuePair(result);
           if (type === "ArrayKey") {
-            _ref = this.model.last().getArrayKeyName(), keyName = _ref.keyName, method = _ref.method;
+            ref = this.model.last().getArrayKeyName(), keyName = ref.keyName, method = ref.method;
             if (method === "countBy") {
               this.pageHeader.html("<h3>Count by \"" + keyName + "\" in Array</h3>");
             }
@@ -141,13 +176,13 @@
         return $(this.codeBlockPre.node()).show();
       };
 
-      BangJsonView.prototype.updateArrayEnumerator = function(_arg) {
-        var arrayName, error, index, maxLength, pager, result, _ref;
-        arrayName = _arg.arrayName, index = _arg.index;
+      BangJsonView.prototype.updateArrayEnumerator = function(arg) {
+        var arrayName, error, index, maxLength, pager, ref, result;
+        arrayName = arg.arrayName, index = arg.index;
         pager = this.indexSelectorDiv.append("nav").append("ul").attr("class", "pager");
-        _ref = this.model.getResult(this.model.getQuery(this.model.slice(0, this.model.length - 1).concat(new BangJsonPathFragment({
+        ref = this.model.getResult(this.model.getQuery(this.model.slice(0, this.model.length - 1).concat(new BangJsonPathFragment({
           fragment: arrayName + "[]"
-        })))), error = _ref.error, result = _ref.result;
+        })))), error = ref.error, result = ref.result;
         if (result) {
           maxLength = result.length;
         } else {
@@ -163,7 +198,7 @@
         } else {
           pager.append("li").attr("class", "previous disabled").append("a").attr("href", "#").html("&larr;Previous");
         }
-        pager.append("li").html("" + (index + 1) + " / " + maxLength);
+        pager.append("li").html((index + 1) + " / " + maxLength);
         if (index < maxLength - 1) {
           return pager.append("li").attr("class", "next").append("a").attr("href", "#").html("Next&rarr;").on("click", (function(_this) {
             return function() {
@@ -342,26 +377,26 @@
         })(this));
         thead = this.arrayContentTable.append("thead").append("tr");
         rows = this.arrayContentTable.append("tbody").selectAll("tr").data(keyStats).enter().append("tr");
-        rows.append("th").append("a").attr("href", "#").text(function(_arg) {
+        rows.append("th").append("a").attr("href", "#").text(function(arg) {
           var key;
-          key = _arg.key;
+          key = arg.key;
           return key;
-        }).on("click", function(_arg) {
+        }).on("click", function(arg) {
           var key;
-          key = _arg.key;
+          key = arg.key;
           d3.event.preventDefault();
           path.push(new BangJsonPathFragment({
             fragment: ":" + key
           }));
           return path.trigger("change:path");
         });
-        rows.append("td").text(function(_arg) {
+        rows.append("td").text(function(arg) {
           var key, times, types;
-          key = _arg.key, types = _arg.types;
+          key = arg.key, types = arg.types;
           times = _.reduce(_.values(types), (function(memo, num) {
             return memo + num;
           }), 0);
-          return ("" + times + " (" + ((100 * times / array.length).toFixed(0)) + "%) -- ") + JSON.stringify(types);
+          return (times + " (" + ((100 * times / array.length).toFixed(0)) + "%) -- ") + JSON.stringify(types);
         });
         thead.append("th").attr("class", "sortable").html("Key<span class='glyphicon glyphicon-sort'></span>").on("click", function() {
           var icon;

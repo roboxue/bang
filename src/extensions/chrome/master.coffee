@@ -1,5 +1,5 @@
 ###
-Bang.coffee, frontend JSON workspace, a chrome extension
+Bang, frontend JSON workspace, a chrome extension
 
 Copyright (c) 2015, Groupon, Inc.
 All rights reserved.

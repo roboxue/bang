@@ -5,7 +5,7 @@ module.exports = (grunt) ->
   grunt.initConfig
     clean:
       app: ['dist', 'release', 'tmp']
-      test: ['test/client.test.js']
+      test: ['test/tmp']
     bower:
       install:
         options:

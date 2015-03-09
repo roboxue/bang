@@ -12,12 +12,8 @@
     "grunt-contrib-clean": "^0.6.0",
     "grunt-contrib-coffee": "*",
     "grunt-contrib-compress": "^0.13.0",
-    "grunt-contrib-concat": "^0.5.0",
     "grunt-contrib-copy": "^0.7.0",
-    "grunt-contrib-jshint": "~0.10.0",
-    "grunt-contrib-nodeunit": "~0.4.1",
     "grunt-contrib-stylus": "^0.20.0",
-    "grunt-contrib-uglify": "^0.7.0",
     "grunt-contrib-watch": "*",
     "grunt-line-remover": "0.0.2",
     "grunt-mustache": "^0.1.7",
@@ -25,8 +21,6 @@
     "mocha": "^2.1.0"
   },
   "dependencies": {
-    "coffee-script": "^1.9.0",
-    "milk": "^1.2.0",
     "mustache": "^1.1.0",
     "requirejs": "^2.1.16"
   },

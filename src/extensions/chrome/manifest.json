@@ -10,10 +10,8 @@
 
   "description": "Frontend JSON workspace",
   "author": "Robert Xue",
-  "homepage_url": "https://github.com/roboxue/bang",
   "permissions": [
-    "https://www.google-analytics.com/",
-    "storage"
+    "https://www.google-analytics.com/"
   ],
 
   "content_security_policy": "script-src 'self' https://ssl.google-analytics.com; object-src 'self'",
@@ -27,8 +25,7 @@
   "web_accessible_resources": [
     "lib/*",
     "app/*",
-    "css/bootstrap.css",
-    "css/bang.css",
+    "css/*",
     "fonts/*"
   ],
   "background": {
