@@ -2,7 +2,7 @@
 
 Frontend JSON workspace, a Chrome extension
 
-[Chrome Store](https://chrome.google.com/webstore/detail/bang/dfmpfciemnocjnpfddbefbhhamhjcmgl)
+[Chrome Store](https://chrome.google.com/webstore/detail/bang-json-workspace/dfmpfciemnocjnpfddbefbhhamhjcmgl)
 
 License
 -------
