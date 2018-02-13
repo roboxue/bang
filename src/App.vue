@@ -38,8 +38,10 @@
       <v-container fluid grid-list-md>
         <v-layout row wrap>
           <v-flex xs4>
-            <h3>Raw JSON</h3>
-            <pre v-highlightjs="jsonRepl"><code class="json"></code></pre>
+            <v-container fluid>
+              <p class="display-1">Raw JSON</p>
+              <pre v-highlightjs="jsonRepl"><code class="json"></code></pre>
+            </v-container>
           </v-flex>
           <v-flex xs8>
             <ArrayView v-if="isArray"

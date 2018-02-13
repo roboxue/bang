@@ -1,6 +1,7 @@
 <template>
   <v-container fluid>
-  <pre v-highlightjs="sourcecode"><code class="javascript"></code></pre>
+    <p class="display-1">Value View</p>
+    <pre><code>{{sourcecode}}</code></pre>
   </v-container>
 </template>
 
@@ -16,7 +17,7 @@ export default {
   },
   computed: {
     sourcecode () {
-      return JSON.stringify(model)
+      return JSON.stringify(this.model)
     }
   },
   props: [
