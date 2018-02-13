@@ -35,15 +35,25 @@
       <v-spacer></v-spacer>
     </v-toolbar>
     <v-content>
-      <ArrayView v-if="isArray"
-        :models=bangResult
-      />
-      <ObjectView v-else-if="isObject"
-        :model=bangResult
-      />
-      <ValueView v-else
-        :model=bangResult
-      />
+      <v-container fluid grid-list-md>
+        <v-layout row wrap>
+          <v-flex xs4>
+            <h3>Raw JSON</h3>
+            <pre v-highlightjs="jsonRepl"><code class="json"></code></pre>
+          </v-flex>
+          <v-flex xs8>
+            <ArrayView v-if="isArray"
+              :models=bangResult
+            />
+            <ObjectView v-else-if="isObject"
+              :model=bangResult
+            />
+            <ValueView v-else
+              :model=bangResult
+            />
+          </v-flex>
+        </v-layout>
+      </v-container>
     </v-content>
     <v-footer fixed app>
       <span>&copy; 2017</span>
@@ -52,6 +62,7 @@
 </template>
 
 <script>
+import Vue from 'vue'
 import ObjectView from './components/ObjectView'
 import ArrayView from './components/ArrayView'
 import ValueView from './components/ValueView'
@@ -59,8 +70,12 @@ import { codemirror } from 'vue-codemirror'
 import 'codemirror/lib/codemirror.css'
 import 'codemirror/theme/base16-dark.css'
 import 'codemirror/mode/javascript/javascript.js'
+import VueHighlightJS from 'vue-highlightjs'
+import 'highlight.js/styles/monokai.css'
 
 import _ from 'lodash'
+
+Vue.use(VueHighlightJS)
 
 export default {
   data () {
@@ -88,6 +103,9 @@ export default {
     },
     isObject () {
       return _.isObject(this.bangResult)
+    },
+    jsonRepl () {
+      return JSON.stringify(this.bangResult, null, 2)
     }
   },
   methods: {
@@ -106,6 +124,7 @@ export default {
     ObjectView,
     ArrayView,
     ValueView,
+    VueHighlightJS,
     codemirror
   }
 }
