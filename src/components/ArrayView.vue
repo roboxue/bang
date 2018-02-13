@@ -1,6 +1,6 @@
 <template>
   <v-container fluid>
-    <p class="display-1">Column stats</p>
+    <v-subheader>Column stats</v-subheader>
     <v-list dense>
       <v-list-tile v-for="h in headers" :key="h.value">
         <v-list-tile-content><h4>{{h.value}}</h4></v-list-tile-content>
@@ -12,7 +12,7 @@
         </v-list-tile-action>
       </v-list-tile>
     </v-list>
-    <p class="display-1">Table view</p>
+    <v-subheader>Table view</v-subheader>
     <v-data-table
       v-bind:headers="[{text: 'Index', value: 'index'}].concat(visibleHeaders)"
       :items="items"
@@ -41,7 +41,7 @@ export default {
       pagination: {
         rowsPerPage: 4
       },
-      headers: []
+      headers: this.getHeadersFromModel(this.models)
     }
   },
   computed: {
@@ -54,23 +54,29 @@ export default {
   },
   watch: {
       models: function (val) {
-        this.headers = _.chain(val)
-        .map((m) => _.keys(m))
-        .flatten()
-        .countBy()
-        .toPairs()
-        .sortBy([(p) => -p[1], (p) => p[0]])
-        .map((p) => {
-          return {
-          count: p[1],
-          value: p[0],
-          visible: true
-        }})
-        .value()
+        this.headers = this.getHeadersFromModel(val)
       }
   },
   props: {
     models: Array
+  },
+  methods: {
+    getHeadersFromModel (val) {
+        return _.chain(val)
+          .map((m) => _.keys(m))
+          .flatten()
+          .countBy()
+          .toPairs()
+          .sortBy([(p) => -p[1], (p) => p[0]])
+          .map((p) => {
+            return {
+              count: p[1],
+              value: p[0],
+              visible: true
+            }
+          })
+          .value()
+    }
   }
 }
 </script>

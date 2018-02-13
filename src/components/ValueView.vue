@@ -1,6 +1,6 @@
 <template>
   <v-container fluid>
-    <p class="display-1">Value View</p>
+    <v-subheader>Value View</v-subheader>
     <pre><code>{{sourcecode}}</code></pre>
   </v-container>
 </template>

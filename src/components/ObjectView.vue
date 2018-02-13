@@ -1,6 +1,6 @@
 <template>
   <v-container fluid>
-    <p class="display-1">Object view</p>
+    <v-subheader>Object view</v-subheader>
     <v-card>
       <v-card-title class="py-1" :key="h" v-for="h in headers">
         <h4>{{h}}:</h4><v-spacer></v-spacer>

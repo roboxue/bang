@@ -39,7 +39,7 @@
         <v-layout row wrap>
           <v-flex xs4>
             <v-container fluid>
-              <p class="display-1">Raw JSON</p>
+              <v-subheader>Raw JSON</v-subheader>
               <pre v-highlightjs="jsonRepl"><code class="json"></code></pre>
             </v-container>
           </v-flex>
