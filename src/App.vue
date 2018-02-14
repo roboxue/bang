@@ -39,19 +39,33 @@
         <v-layout row wrap>
           <v-flex xs4>
             <v-container fluid>
+              <v-breadcrumbs>
+                <v-breadcrumbs-item>
+                  <template slot="default">
+                    <span @click="goToRoot">Root</span>
+                  </template>
+                </v-breadcrumbs-item>
+                <v-breadcrumbs-item v-for="(fragment, i) in path" :key="fragment">
+                  <template slot="default">
+                    <span @click="path.pop(path.length - i)">{{fragment}}</span>
+                  </template>
+                </v-breadcrumbs-item>
+              </v-breadcrumbs>
               <v-subheader>Raw JSON</v-subheader>
               <pre v-highlightjs="jsonRepl"><code class="json"></code></pre>
             </v-container>
           </v-flex>
           <v-flex xs8>
             <ArrayView v-if="isArray"
-              :models=bangResult
+              :models=browseResult
+              @browse="pushToPath"
             />
             <ObjectView v-else-if="isObject"
-              :model=bangResult
+              :model=browseResult
+              @browse="pushToPath"
             />
             <ValueView v-else
-              :model=bangResult
+              :model=browseResult
             />
           </v-flex>
         </v-layout>
@@ -90,6 +104,7 @@ export default {
       showEvalMessage: false,
       evalErrorMessage: "",
       bangResult: {},
+      path: [],
       cmOptions: {
         tabSize: 4,
         mode: 'text/javascript',
@@ -101,13 +116,16 @@ export default {
   },
   computed: {
     isArray () {
-      return _.isArray(this.bangResult)
+      return _.isArray(this.browseResult)
     },
     isObject () {
-      return _.isObject(this.bangResult)
+      return _.isObject(this.browseResult)
     },
     jsonRepl () {
-      return JSON.stringify(this.bangResult, null, 2)
+      return JSON.stringify(this.browseResult, null, 2)
+    },
+    browseResult () {
+      return this.path.length === 0 ? this.bangResult : _.get(this.bangResult, this.path)
     }
   },
   methods: {
@@ -115,10 +133,17 @@ export default {
       this.evalErrorMessage = ""
       try {
         this.bangResult = JSON.parse(this.code)
+        this.path = []
       } catch(err) {
         this.evalErrorMessage = err.message
       }
       this.showEvalMessage = true
+    },
+    pushToPath (fragment) {
+      this.path.push(fragment)
+    },
+    goToRoot () {
+      this.path = []
     }
   },
   name: 'App',

@@ -24,9 +24,11 @@
         </span>
       </template>
       <template slot="items" slot-scope="props">
-        <td class="text-xs-right">{{ props.index }}</td>
+        <td class="text-xs-right">
+          <a href="#" @click.prevent="$emit('browse', props.index)">{{ props.index }}</a>
+        </td>
         <td class="text-xs-right" v-for="h in visibleHeaders" :key="h.value">
-          {{ props.item[h.value] }}
+          {{ h.value === "(value)" ? props.item : props.item[h.value] }}
         </td>
       </template>
     </v-data-table>
@@ -63,7 +65,7 @@ export default {
   methods: {
     getHeadersFromModel (val) {
         return _.chain(val)
-          .map((m) => _.keys(m))
+          .map((m) => _.isObject(m) ? _.keys(m): ["(value)"])
           .flatten()
           .countBy()
           .toPairs()
