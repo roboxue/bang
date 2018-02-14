@@ -9,21 +9,16 @@
       app
     >
       <v-list>
-        <v-subheader>Custom JSON literial</v-subheader>
+        <v-subheader>Custom Root</v-subheader>
         <codemirror v-model="code" :options="cmOptions"></codemirror>
         <v-list-tile @click="evalBangResult">
           <v-list-tile-action>
             <v-icon>assignment_turned_in</v-icon>
           </v-list-tile-action>
           <v-list-tile-content>
-            <v-list-tile-title>Eval and assign to <code>bangResult</code></v-list-tile-title>
+            <v-list-tile-title>Eval and assign to <code>Root</code></v-list-tile-title>
           </v-list-tile-content>
         </v-list-tile>
-        <v-alert :type="evalErrorMessage ? 'error' : 'success'"
-          v-model="showEvalMessage"
-          dismissible>
-          {{evalErrorMessage || "Evaluation Success"}}
-        </v-alert>
       </v-list>
     </v-navigation-drawer>
     <v-toolbar
@@ -69,6 +64,14 @@
             />
           </v-flex>
         </v-layout>
+        <v-snackbar
+          :timeout="timeout"
+          :color="evalErrorMessage ? 'error' : 'success'"
+          v-model="snackbar"
+        >
+          {{evalErrorMessage || "Evaluation success, Root updates"}}
+          <v-btn dark flat @click.native="snackbar = false">Close</v-btn>
+        </v-snackbar>
       </v-container>
     </v-content>
     <v-footer fixed app>
@@ -100,8 +103,10 @@ export default {
       drawer: true,
       title: 'Bang! JSON workspace',
 
+      snackbar: false,
+      timeout: 5000,
+
       code: "",
-      showEvalMessage: false,
       evalErrorMessage: "",
       bangResult: {},
       path: [],
@@ -119,7 +124,7 @@ export default {
       return _.isArray(this.browseResult)
     },
     isObject () {
-      return _.isObject(this.browseResult)
+      return _.isPlainObject(this.browseResult)
     },
     jsonRepl () {
       return JSON.stringify(this.browseResult, null, 2)
@@ -137,10 +142,10 @@ export default {
       } catch(err) {
         this.evalErrorMessage = err.message
       }
-      this.showEvalMessage = true
+      this.snackbar = true
     },
     pushToPath (fragment) {
-      this.path.push(fragment)
+      this.path =_.concat(this.path, fragment)
     },
     goToRoot () {
       this.path = []
