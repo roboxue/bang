@@ -153,6 +153,16 @@ export default {
     ValueView,
     VueHighlightJS,
     codemirror
+  },
+  mounted () {
+    let vm = this
+    history.pushState("trash", null, null);
+    window.onpopstate = function () {
+      history.pushState('newtrash', null, null)
+      if (vm.path.length > 0) {
+        vm.path.pop()
+      }
+    }
   }
 }
 </script>
